@@ -1,0 +1,14 @@
+{
+  "name": "react-protocol",
+  "private": "true",
+  "homepage": "http://atmosphere.github.io/react/protocol/",
+  "description": "React protocol",
+  "author": {
+    "name": "Donghwan Kim",
+    "email": "flowersinthesand@gmail.com"
+  },
+  "license": "Apache License, Version 2.0",
+  "dependencies": {
+    "ws": "0.4.31"
+  }
+}
