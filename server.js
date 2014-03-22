@@ -10,7 +10,7 @@
 // easy-to-read JavaScript running on Node.js.
 // 
 // **Note**
-// * For production use, see the React Java.
+// * For production use, see the [React Java Server](http://atmosphere.github.io/react/java-server/).
 // * JavaScript runs in a single thread, so mind thread-safety.
 // 
 // The react server is installed by passing request and upgrade events 
