@@ -13,8 +13,15 @@
 // * For production use, see the [React Java Server](http://atmosphere.github.io/react/java-server/).
 // * JavaScript runs in a single thread, so mind thread-safety.
 // 
-// The react server is installed by passing request and upgrade events 
-// dispatched by Node's HTTP/HTTPS server to the server.
+var events  = require("events"), 
+    url     = require("url"), 
+    crypto  = require("crypto"), 
+    ws      = require("ws");
+
+// ## Exports
+// ### server
+// Returns a new react server. It is installed by passing request 
+// and upgrade events dispatched by Node's HTTP/HTTPS server to the server.
 //
 //     var server = require("./server").server(),
 //         httpServer = require("http").createServer();
@@ -26,10 +33,7 @@
 //     httpServer.listen(8080)
 //     .on("request", server.handleRequest)
 //     .on("upgrade", server.handleUpgrade);
-var events  = require("events"), 
-    url     = require("url"), 
-    crypto  = require("crypto"), 
-    ws      = require("ws");
+exports.server = server;
 
 // ## Server
 // A react server.
@@ -40,7 +44,7 @@ var events  = require("events"),
 // **Methods**
 // * `handleRequest(request, response)`: HTTP request handler.
 // * `handleUpgrade(request, socket, head)`: HTTP upgrade handler.
-exports.server = function() {
+function server() {
     var sockets = {}, 
         server = new events.EventEmitter();
     
