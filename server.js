@@ -13,10 +13,10 @@
 // * For production use, see the [React Java Server](http://atmosphere.github.io/react/java-server/).
 // * JavaScript runs in a single thread, so mind thread-safety.
 // 
-var events  = require("events"), 
-    url     = require("url"), 
-    crypto  = require("crypto"), 
-    ws      = require("ws");
+var events      = require("events"), 
+    url         = require("url"), 
+    crypto      = require("crypto"), 
+    WebSocket   = require("ws");
 
 // ## Exports
 // ### server
@@ -180,9 +180,9 @@ function server() {
     // ### Handling HTTP upgrade
     // An HTTP upgrade is used to upgrade an HTTP request to the WebSocket
     // protocol and open a new socket establishing the WebSocket transport.
-    var wsServer = new ws.Server({noServer: true});
+    var webSocketServer = new WebSocket.Server({noServer: true});
     server.handleUpgrade = function(req, sock, head) {
-        wsServer.handleUpgrade(req, sock, head, function(ws) {
+        webSocketServer.handleUpgrade(req, sock, head, function(ws) {
             server.emit("socket", socket(url.parse(req.url, true).query, transports.ws(ws)));
         });
     };
@@ -450,7 +450,7 @@ function socket(params, transport) {
         // * `id: string`: an event identifier.
         // * `type: string`: an event type.
         // * `data: any`: an event data.
-        // * `reply: boolean`: whehter to handle reply or not.
+        // * `reply: boolean`: true if this event requires the reply.
         socket.emit(event.type, event.data, !event.reply ? null : {
             // Calls the client's resolved callback whose event id is `event.id` with `value`.
             resolve: function(value) {
@@ -482,7 +482,7 @@ function socket(params, transport) {
         // * `id: string`: an event identifier.
         // * `type: string`: an event type.
         // * `data: any`: an event data.
-        // * `reply: boolean`: whehter to handle reply or not.
+        // * `reply: boolean`: true if this event requires the reply.
         var event = {
                 id: crypto.randomBytes(3).toString("hex"), 
                 type: type, 
@@ -494,7 +494,6 @@ function socket(params, transport) {
         if (event.reply) {
             callbacks[event.id] = {resolved: resolved, rejected: rejected};
         }
-        
         // Convert event object to JSON string and sends it through the transport.
         // It will be formatted properly according to which the transport is used.
         transport.send(JSON.stringify(event));
@@ -510,7 +509,7 @@ function socket(params, transport) {
     socket.on("reply", function(reply) {
         if (reply.id in callbacks) {
             var cbs = callbacks[reply.id],
-                fn = cbs.exception ? cbs.rejected : cbs.resolved;
+                fn = reply.exception ? cbs.rejected : cbs.resolved;
             if (fn) {
                 fn(reply.data);
             }
@@ -519,8 +518,8 @@ function socket(params, transport) {
     });
     // ### heartbeat
     // If `heartbeat` param is not `false` and is a number, prepares 
-    // the heartbeat handshakes. FYI `+false` gives `NaN` equal to `false` 
-    // and `+5000` gives `5000` equal to `true` in JavaScript.
+    // the heartbeat handshakes. FYI `+"false"` gives `NaN` equal to `false` 
+    // and `+"5000"` gives `5000` equal to `true` in JavaScript.
     if (+params.heartbeat) {
         // Sets a timer to close the socket after the heartbeat interval.
         var heartbeatTimer;
