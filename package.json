@@ -11,6 +11,8 @@
   "dependencies": {
     "ws": "0.4.31",
     "node-uuid": "1.4.1",
-    "eventsource": "0.0.10"
+    "eventsource": "0.1.0",
+    "mocha": "1.18.2",
+    "chai": "1.9.1"
   }
 }
