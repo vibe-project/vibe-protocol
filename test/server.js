@@ -100,11 +100,13 @@ describe("server", function() {
                             sent.push(i);
                             this.send("echo", i);
                         }
+                        sent.sort();
                     })
-                    .on("echo", function(data) {
-                        received.push(data);
+                    .on("echo", function(i) {
+                        received.push(i);
                         clearTimeout(timer);
                         timer = setTimeout(function() {
+                            received.sort();
                             received.should.be.deep.equal(sent);
                             done();
                         }, 200);
