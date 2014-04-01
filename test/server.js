@@ -74,10 +74,10 @@ describe("server", function() {
                 it("should exchange an event containing of multi-byte characters", function(done) {
                     client.open(uri, {transport: transport})
                     .on("open", function() {
-                        this.send("echo", "진행 중인 초고");
+                        this.send("echo", "라면");
                     })
                     .on("echo", function(data) {
-                        data.should.be.equal("진행 중인 초고");
+                        data.should.be.equal("라면");
                         done();
                     });
                 });
