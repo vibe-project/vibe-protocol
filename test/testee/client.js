@@ -1,19 +1,19 @@
 var url = require("url"),
     http = require("http"),
-    client = require("../../lib/client"),
-    sockets = {};
+    client = require("../../lib/client");
 
 http.globalAgent.maxSockets = Infinity;
 
 http.createServer(function(req, res) {
     var urlObj = url.parse(req.url, true);
-    var params = urlObj.query;
-    
-    switch (urlObj.pathname) {
-    case "/open":
-        client.open(params.uri, {transport: params.transport, heartbeat: +params.heartbeat || false, _heartbeat: +params._heartbeat || false})
-        .on("open", function() {
-            sockets[this.id] = this;
+    if (urlObj.pathname === "/open") {
+        client.open(urlObj.query.uri, {
+            transport: urlObj.query.transport, 
+            heartbeat: +urlObj.query.heartbeat || false, 
+            _heartbeat: +urlObj.query._heartbeat || false
+        })
+        .on("abort", function() {
+            this.close();
         })
         .on("echo", function(data) {
             this.send("echo", data);
@@ -26,13 +26,6 @@ http.createServer(function(req, res) {
             }
         });
         res.end();
-        break;
-    case "/close":
-        sockets[params.id].close();
-        res.end();
-        break;
-    default:
-        break;
     }
 })
 .listen(9000);

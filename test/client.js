@@ -7,7 +7,7 @@ var should = require("chai").should(),
 http.globalAgent.maxSockets = Infinity;
 
 describe("client", function() {
-    var uri = "http://localhost:9000";
+    var uri = "http://localhost:9000/open";
     
     before(function(done) {
         var self = this;
@@ -43,7 +43,7 @@ describe("client", function() {
                 params.uri = "http://localhost:" + port + "/react";
                 params.heartbeat = params.heartbeat || false;
                 params._heartbeat = params._heartbeat || false;
-                http.get(uri + "/open?" + querystring.stringify(params));
+                http.get(uri + "?" + querystring.stringify(params));
             };
             done();
         });
@@ -98,8 +98,8 @@ describe("client", function() {
                     this.server.on("socket", function(socket) {
                         socket.on("close", function() {
                             done();
-                        });
-                        http.get(uri + "/close?id=" + socket.id);
+                        })
+                        .send("abort");
                     });
                 });
             });
