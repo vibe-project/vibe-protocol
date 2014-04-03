@@ -196,7 +196,7 @@ describe("client", function() {
             });
         }
         
-        ["ws", "sse", "longpollajax"].forEach(function(transport) {
+        ["ws", "sse", "streamxhr", "streamxdr", "streamiframe", "longpollajax"].forEach(function(transport) {
             describe(transport, function() {
                 suite(transport);
             });
