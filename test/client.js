@@ -9,6 +9,8 @@ http.globalAgent.maxSockets = Infinity;
 describe("client", function() {
     var uri = "http://localhost:9000/open";
     
+    // For Internet Explorer 6-8
+    this.timeout(10000);
     before(function(done) {
         var self = this;
         self.sockets = [];
@@ -84,6 +86,7 @@ describe("client", function() {
                 });
             });
             describe("close", function() {
+                // Some old browser's transports can't pass so they have to use heartbeat
                 it("should close the socket if the server requests it", function(done) {
                     this.order({transport: transport});
                     this.server.on("socket", function(socket) {

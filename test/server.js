@@ -7,6 +7,7 @@ http.globalAgent.maxSockets = Infinity;
 describe("server", function() {
     var uri = "http://localhost:8000/react";
 
+    this.timeout(10000);
     before(function() {
         var self = this;
         self.sockets = [];
