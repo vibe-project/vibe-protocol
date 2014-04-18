@@ -2,7 +2,7 @@
 
 The **React** Protocol is a feature-rich application-level protocol built over HTTP and WebSocket protocol for real-time web application development. It is designed to not only provide a mechanism for applications that need two-way communication with servers but also aim to utilize a full duplex connection for modern web application development by carefully considering known issues and best practices of real-time web.
 
-This project provides a reference implementation and test suite to help write and verify the **React** protocol implementations, which are written in easy to read JavaScript and run on [Node.js](http://nodejs.org). For the reference implementation, their annotated source codes are available at [client.js](http://atmosphere.github.io/react/protocol/client.html) and [server.js](http://atmosphere.github.io/react/protocol/server.html).
+This project provides a reference implementation and test suite to help write and verify the **React** protocol implementations, which are written in easy to read JavaScript and run on [Node.js](http://nodejs.org). For the reference implementation, their annotated source codes are available at [client.js](http://atmosphere.github.io/react/client.html) and [server.js](http://atmosphere.github.io/react/server.html).
 
 ## Testing
 
