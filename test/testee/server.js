@@ -1,6 +1,7 @@
 var url = require("url"),
     http = require("http"),
-    server = require("../../lib/server").server();
+    react = require("../../lib/index"),
+    server = react.server();
 
 server.on("socket", function(socket) {
     socket.on("echo", function(data) {

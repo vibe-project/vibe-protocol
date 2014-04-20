@@ -1,13 +1,13 @@
 var url = require("url"),
     http = require("http"),
-    client = require("../../lib/client");
+    react = require("../../lib/index");
 
 http.globalAgent.maxSockets = Infinity;
 
 http.createServer(function(req, res) {
     var urlObj = url.parse(req.url, true);
     if (urlObj.pathname === "/open") {
-        client.open(urlObj.query.uri, {
+        react.open(urlObj.query.uri, {
             transport: urlObj.query.transport, 
             heartbeat: +urlObj.query.heartbeat || false, 
             _heartbeat: +urlObj.query._heartbeat || false

@@ -1,6 +1,6 @@
 var should = require("chai").should(),
     http = require("http"),
-    client = require("../lib/client.js");
+    react = require("../lib/index");
 
 http.globalAgent.maxSockets = Infinity;
 
@@ -11,8 +11,8 @@ describe("server", function() {
     before(function() {
         var self = this;
         self.sockets = [];
-        self.open = client.open;
-        client.open = function() {
+        self.open = react.open;
+        react.open = function() {
             return self.open.apply(this, arguments)
             .on("open", function() {
                 self.sockets.push(this);
@@ -23,7 +23,7 @@ describe("server", function() {
         };
     });
     after(function() {
-        client.open = this.open;
+        react.open = this.open;
     });
     afterEach(function() {
         this.sockets.forEach(function(socket) {
@@ -35,7 +35,7 @@ describe("server", function() {
         function suite(transport) {
             describe("open", function() {
                 it("should open a new socket", function(done) {
-                    client.open(uri, {transport: transport})
+                    react.open(uri, {transport: transport})
                     .on("open", function() {
                         done();
                     });
@@ -43,7 +43,7 @@ describe("server", function() {
             });
             describe("close", function() {
                 it("should close the socket if the client requests it", function(done) {
-                    client.open(uri, {transport: transport})
+                    react.open(uri, {transport: transport})
                     .on("open", function() {
                         this.close();
                     })
@@ -52,7 +52,7 @@ describe("server", function() {
                     });
                 });
                 it("should close the socket if the server requests it", function(done) {
-                    client.open(uri, {transport: transport})
+                    react.open(uri, {transport: transport})
                     .on("open", function() {
                         http.get(uri + "?id=" + this.id + "&when=abort");
                     })
@@ -63,7 +63,7 @@ describe("server", function() {
             });
             describe("exchange", function() {
                 it("should exchange an event", function(done) {
-                    client.open(uri, {transport: transport})
+                    react.open(uri, {transport: transport})
                     .on("open", function() {
                         this.send("echo", "data");
                     })
@@ -73,7 +73,7 @@ describe("server", function() {
                     });
                 });
                 it("should exchange an event containing of multi-byte characters", function(done) {
-                    client.open(uri, {transport: transport})
+                    react.open(uri, {transport: transport})
                     .on("open", function() {
                         this.send("echo", "라면");
                     })
@@ -84,7 +84,7 @@ describe("server", function() {
                 });
                 it("should exchange an event of 2KB", function(done) {
                     var text2KB = Array(2048).join("K");
-                    client.open(uri, {transport: transport})
+                    react.open(uri, {transport: transport})
                     .on("open", function() {
                         this.send("echo", text2KB);
                     })
@@ -95,7 +95,7 @@ describe("server", function() {
                 });
                 it("should not lose any event in an exchange of one hundred of event", function(done) {
                     var timer, sent = [], received = [];
-                    client.open(uri, {transport: transport})
+                    react.open(uri, {transport: transport})
                     .on("open", function() {
                         for (var i = 0; i < 100; i++) {
                             sent.push(i);
@@ -116,7 +116,7 @@ describe("server", function() {
             });
             describe("reply", function() {
                 it("should handle reply requested by the client", function(done) {
-                    client.open(uri, {transport: transport})
+                    react.open(uri, {transport: transport})
                     .on("open", function() {
                         function fail() { true.should.be.false; }
                         this.send("reaction", true, function(value) {
@@ -131,7 +131,7 @@ describe("server", function() {
             });
             describe("heartbeat", function() {
                 it("should support heartbeat", function(done) {
-                    client.open(uri, {transport: transport, heartbeat: 400, _heartbeat: 200})
+                    react.open(uri, {transport: transport, heartbeat: 400, _heartbeat: 200})
                     .once("heartbeat", function() {
                         this.once("heartbeat", function() {
                             this.once("heartbeat", function() {
@@ -141,7 +141,7 @@ describe("server", function() {
                     });
                 });
                 it("should close the socket if heartbeat fails", function(done) {
-                    client.open(uri, {transport: transport, heartbeat: 400, _heartbeat: 200})
+                    react.open(uri, {transport: transport, heartbeat: 400, _heartbeat: 200})
                     .on("open", function() {
                         this.send = function() { return this; };
                     })

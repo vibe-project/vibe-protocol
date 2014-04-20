@@ -8,6 +8,7 @@
     "email": "flowersinthesand@gmail.com"
   },
   "license": "Apache License, Version 2.0",
+  "main": "./lib/index",
   "dependencies": {
     "ws": "0.4.31",
     "node-uuid": "1.4.1",

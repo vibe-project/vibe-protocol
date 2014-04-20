@@ -2,7 +2,7 @@ var should = require("chai").should(),
     url = require("url"),
     http = require("http"),
     querystring = require("querystring"),
-    react = require("../lib/server.js");
+    react = require("../lib/index");
 
 http.globalAgent.maxSockets = Infinity;
 
