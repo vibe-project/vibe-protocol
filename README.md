@@ -1,4 +1,5 @@
 ## React Protocol
+[![Build Status](http://img.shields.io/travis/Atmosphere/react-protocol/master.svg?style=flat)](https://travis-ci.org/Atmosphere/react-protocol)
 The React Protocol is a feature-rich and application-level protocol built over HTTP and WebSocket protocol for real-time web application development. It is designed by carefully considering known issues and best practices of real-time web to provide and take advantage of a reliable full duplex connection for modern web application development, and focuses on providing elegant patterns to write low-latency, event-driven and real-time web applications.
 
 ### Features
