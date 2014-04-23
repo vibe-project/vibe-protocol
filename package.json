@@ -2,18 +2,24 @@
   "name": "react-protocol",
   "version": "3.0.0-Alpha1",
   "homepage": "http://atmosphere.github.io/react/",
-  "description": "React protocol",
+  "description": "A reference implementation and test suite of react protocol",
   "author": {
     "name": "Donghwan Kim",
     "email": "flowersinthesand@gmail.com"
   },
   "license": "Apache License, Version 2.0",
   "main": "./lib/index",
+  "scripts": {
+    "test": "grunt"
+  },
   "dependencies": {
     "ws": "0.4.31",
     "node-uuid": "1.4.1",
-    "eventsource": "0.1.0",
-    "mocha": "1.18.2",
-    "chai": "1.9.1"
+    "eventsource": "0.1.0"
+  },
+  "devDependencies": {
+    "grunt": "^0.4.4",
+    "mocha": "^1.18.2",
+    "chai": "^1.9.1"
   }
 }
