@@ -2,12 +2,13 @@ var should = require("chai").should(),
     url = require("url"),
     http = require("http"),
     querystring = require("querystring"),
+    ip = require("ip"),
     react = require("../lib/index");
 
 http.globalAgent.maxSockets = Infinity;
 
 describe("client", function() {
-    var uri = "http://localhost:9000/open";
+    var uri = "http://" + ip.address() + ":9000/open";
     
     // For Internet Explorer 6-8
     this.timeout(10000);
@@ -42,7 +43,7 @@ describe("client", function() {
         .listen(0, function() {
             var port = this.address().port;
             self.order = function(params) {
-                params.uri = "http://localhost:" + port + "/react";
+                params.uri = "http://" + ip.address() + ":" + port + "/react";
                 params.heartbeat = params.heartbeat || false;
                 params._heartbeat = params._heartbeat || false;
                 http.get(uri + "?" + querystring.stringify(params));
@@ -149,7 +150,8 @@ describe("client", function() {
                                 received.sort();
                                 received.should.be.deep.equal(sent);
                                 done();
-                            }, 200);
+                            // For Internet Explorer 6-8
+                            }, 1000);
                         });
                         for (var i = 0; i < 100; i++) {
                             sent.push(i);
