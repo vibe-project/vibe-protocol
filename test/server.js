@@ -1,12 +1,11 @@
 var should = require("chai").should(),
     http = require("http"),
-    ip = require("ip"),
     react = require("../lib/index");
 
 http.globalAgent.maxSockets = Infinity;
 
 describe("server", function() {
-    var uri = "http://" + ip.address() + ":8000/react";
+    var uri = "http://localhost:8000/react";
 
     this.timeout(10000);
     before(function() {

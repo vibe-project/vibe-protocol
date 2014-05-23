@@ -2,13 +2,12 @@ var should = require("chai").should(),
     url = require("url"),
     http = require("http"),
     querystring = require("querystring"),
-    ip = require("ip"),
     react = require("../lib/index");
 
 http.globalAgent.maxSockets = Infinity;
 
 describe("client", function() {
-    var uri = "http://" + ip.address() + ":9000/open";
+    var uri = "http://localhost:9000/open";
     
     // For Internet Explorer 6-8
     this.timeout(10000);
