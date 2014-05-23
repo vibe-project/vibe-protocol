@@ -7,7 +7,7 @@ server.on("socket", function(socket) {
     socket.on("echo", function(data) {
         socket.send("echo", data);
     })
-    .on("reaction", function(bool, reply) {
+    .on("replyable", function(bool, reply) {
         if (bool) {
             reply.resolve(bool);
         } else {

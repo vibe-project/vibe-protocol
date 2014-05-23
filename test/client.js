@@ -179,9 +179,9 @@ describe("client", function() {
                     this.order({transport: transport});
                     this.server.on("socket", function(socket) {
                         function fail() { true.should.be.false; }
-                        socket.send("reaction", true, function(value) {
+                        socket.send("replyable", true, function(value) {
                             value.should.be.true;
-                            socket.send("reaction", false, fail, function(reason) {
+                            socket.send("replyable", false, fail, function(reason) {
                                 reason.should.be.false;
                                 done();
                             });

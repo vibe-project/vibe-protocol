@@ -129,9 +129,9 @@ describe("server", function() {
                     react.open(uri, {transport: transport})
                     .on("open", function() {
                         function fail() { true.should.be.false; }
-                        this.send("reaction", true, function(value) {
+                        this.send("replyable", true, function(value) {
                             value.should.be.true;
-                            this.send("reaction", false, fail, function(reason) {
+                            this.send("replyable", false, fail, function(reason) {
                                 reason.should.be.false;
                                 done();
                             });
