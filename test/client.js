@@ -42,7 +42,7 @@ describe("client", function() {
         .listen(0, function() {
             var port = this.address().port;
             self.order = function(params) {
-                params.uri = "http://" + ip.address() + ":" + port + "/react";
+                params.uri = "http://localhost:" + port + "/react";
                 params.heartbeat = params.heartbeat || false;
                 params._heartbeat = params._heartbeat || false;
                 http.get(uri + "?" + querystring.stringify(params));
