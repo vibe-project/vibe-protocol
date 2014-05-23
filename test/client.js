@@ -1,3 +1,4 @@
+// A reusable test suite to verify the client implementation
 var should = require("chai").should();
 var url = require("url");
 var http = require("http");
@@ -6,7 +7,7 @@ var react = require("../lib/index");
 
 http.globalAgent.maxSockets = Infinity;
 
-describe("client", function() {    
+describe("client", function() {
     // Increase timeout for Internet Explorer 6-8
     this.timeout(10000);
     

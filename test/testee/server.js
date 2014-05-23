@@ -1,8 +1,8 @@
-var url = require("url"),
-    http = require("http"),
-    react = require("../../lib/index"),
-    server = react.server();
+var react = require("../../lib/index");
+var url = require("url");
+var http = require("http");
 
+var server = react.server();
 server.on("socket", function(socket) {
     socket.on("echo", function(data) {
         socket.send("echo", data);

@@ -1,3 +1,4 @@
+// A reusable test suite to verify the server implementation
 var should = require("chai").should();
 var http = require("http");
 var react = require("../lib/index");

@@ -1,17 +1,15 @@
-var url = require("url"),
-    http = require("http"),
-    react = require("../../lib/index");
+var react = require("../../lib/index");
+var url = require("url");
+var http = require("http");
 
 http.globalAgent.maxSockets = Infinity;
 
 http.createServer(function(req, res) {
     var urlObj = url.parse(req.url, true);
-    if (urlObj.pathname === "/open") {
-        react.open(urlObj.query.uri, {
-            transport: urlObj.query.transport, 
-            heartbeat: +urlObj.query.heartbeat || false, 
-            _heartbeat: +urlObj.query._heartbeat || false
-        })
+    switch (urlObj.pathname) {
+    case "/open":
+        var query = urlObj.query;
+        react.open(query.uri, {transport: query.transport, heartbeat: +query.heartbeat || false, _heartbeat: +query._heartbeat || false})
         .on("abort", function() {
             this.close();
         })
@@ -26,6 +24,7 @@ http.createServer(function(req, res) {
             }
         });
         res.end();
+        break;
     }
 })
 .listen(9000);
