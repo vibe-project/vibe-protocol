@@ -7,6 +7,10 @@
     "name": "Donghwan Kim",
     "email": "flowersinthesand@gmail.com"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/atmosphere/react-protocol.git"
+  },
   "license": "Apache License, Version 2.0",
   "main": "./lib/index",
   "scripts": {
