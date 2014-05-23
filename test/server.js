@@ -1,34 +1,43 @@
-var should = require("chai").should(),
-    http = require("http"),
-    react = require("../lib/index");
+var should = require("chai").should();
+var http = require("http");
+var react = require("../lib/index");
 
 http.globalAgent.maxSockets = Infinity;
 
 describe("server", function() {
+    // Endpoint of the react server to be tested
     var uri = "http://localhost:8000/react";
 
     this.timeout(10000);
+    
     before(function() {
         var self = this;
-        self.sockets = [];
+        // A container for active socket to close them after each test
+        var sockets = [];
+        // Override react.open to capture socket
         self.open = react.open;
-        react.open = function() {
+        react.open = function open() {
             return self.open.apply(this, arguments)
             .on("open", function() {
-                self.sockets.push(this);
+                sockets.push(this);
             })
             .on("close", function() {
-                self.sockets.splice(self.sockets.indexOf(this), 1);
+                // Remove the closed one
+                sockets.splice(sockets.indexOf(this), 1);
             });
         };
-    });
-    after(function() {
-        react.open = this.open;
+        
+        self.sockets = sockets;
     });
     afterEach(function() {
+        // Disconnect sockets used in test
         this.sockets.forEach(function(socket) {
             socket.close();
         });
+    });
+    after(function() {
+        // Restore the original method
+        react.open = this.open;
     });
     
     describe("transport", function() {
@@ -152,7 +161,7 @@ describe("server", function() {
             });
         }
         
-        ["ws", "sse", "streamxhr", "streamxdr", "streamiframe", "longpollajax", "longpollxdr", "longpolljsonp"].forEach(function(transport) {
+        "ws sse streamxhr streamxdr streamiframe longpollajax longpollxdr longpolljsonp".split(" ").forEach(function(transport) {
             describe(transport, function() {
                 suite(transport);
             });

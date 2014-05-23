@@ -1,81 +1,94 @@
-var should = require("chai").should(),
-    url = require("url"),
-    http = require("http"),
-    querystring = require("querystring"),
-    react = require("../lib/index");
+var should = require("chai").should();
+var url = require("url");
+var http = require("http");
+var querystring = require("querystring");
+var react = require("../lib/index");
 
 http.globalAgent.maxSockets = Infinity;
 
-describe("client", function() {
-    var uri = "http://localhost:9000/open";
-    
-    // For Internet Explorer 6-8
+describe("client", function() {    
+    // Increase timeout for Internet Explorer 6-8
     this.timeout(10000);
+    
     before(function(done) {
         var self = this;
-        self.sockets = [];
-        self.server = react.server()
-        .on("socket", function(socket) {
-            self.sockets.push(socket);
+        // A container for active socket to close them after each test
+        var sockets = [];
+        var server = react.server().on("socket", function(socket) {
+            sockets.push(socket);
+            // Remove the closed one
             socket.on("close", function() {
-                self.sockets.splice(self.sockets.indexOf(socket), 1);
+                sockets.splice(sockets.indexOf(socket), 1);
             });
         });
-        self.netSockets = [];
-        self.httpServer = http.createServer()
-        .on("connection", function(socket) {
-            self.netSockets.push(socket);
+        
+        // A container for active net socket to destroy them after the whole suite
+        var netSockets = [];
+        var httpServer = http.createServer().on("connection", function(socket) {
+            netSockets.push(socket);
+            // Remove the closed one
             socket.on("close", function () {
-                self.netSockets.splice(self.netSockets.indexOf(socket), 1);
+                netSockets.splice(netSockets.indexOf(socket), 1);
             });
-        })
-        .on("request", function(req, res) {
+        });
+        // Install a react server on a web server
+        httpServer.on("request", function(req, res) {
             if (url.parse(req.url).pathname === "/react") {
-                self.server.handleRequest(req, res);
+                server.handleRequest(req, res);
             }
         })
         .on("upgrade", function(req, sock, head) {
             if (url.parse(req.url).pathname === "/react") {
-                self.server.handleUpgrade(req, sock, head);
+                server.handleUpgrade(req, sock, head);
             }
-        })
-        .listen(0, function() {
+        });
+        // Start the web server
+        httpServer.listen(0, function() {
             var port = this.address().port;
+            // This method is to tell client to connect this server 
             self.order = function(params) {
                 params.uri = "http://localhost:" + port + "/react";
                 params.heartbeat = params.heartbeat || false;
                 params._heartbeat = params._heartbeat || false;
-                http.get(uri + "?" + querystring.stringify(params));
+                http.get("http://localhost:9000/open?" + querystring.stringify(params));
             };
             done();
         });
-    });
-    after(function(done) {
-        var self = this;
-        setTimeout(function() {
-            self.netSockets.forEach(function(socket) {
-                socket.destroy();
-            });
-            self.httpServer.close(function() {
-                done();   
-            });
-        }, 10);
+        
+        self.sockets = sockets;
+        self.server = server;
+        self.netSockets = netSockets;
+        self.httpServer = httpServer;
     });
     beforeEach(function() {
+        // To restore the original stack
         this.socketListeners = this.server.listeners("socket");
     });
     afterEach(function() {
-        var self = this;
-        self.sockets.forEach(function(socket) {
+        // Disconnect sockets used in test
+        this.sockets.forEach(function(socket) {
             socket.close();
         });
-        self.server.removeAllListeners("socket");
-        self.socketListeners.forEach(function(listener) {
-            self.server.on("socket", listener);
-        });
+        // Remove the listener added by the test and restore the original stack
+        this.server.removeAllListeners("socket");
+        this.socketListeners.forEach(function(listener) {
+            this.server.on("socket", listener);
+        }.bind(this));
+    });
+    after(function(done) {
+        // To shutdown the web server immediately
+        setTimeout(function() {
+            this.netSockets.forEach(function(socket) {
+                socket.destroy();
+            });
+            this.httpServer.close(function() {
+                done();   
+            });
+        }.bind(this), 10);
     });
     
     describe("transport", function() {
+        // TODO exclude test considering transport's quirks
         function suite(transport) {
             describe("open", function() {
                 it("should open a new socket", function(done) {
@@ -149,7 +162,7 @@ describe("client", function() {
                                 received.sort();
                                 received.should.be.deep.equal(sent);
                                 done();
-                            // For Internet Explorer 6-8
+                            // Increase timeout for Internet Explorer 6-8
                             }, 1000);
                         });
                         for (var i = 0; i < 100; i++) {
@@ -200,7 +213,7 @@ describe("client", function() {
             });
         }
         
-        ["ws", "sse", "streamxhr", "streamxdr", "streamiframe", "longpollajax", "longpollxdr", "longpolljsonp"].forEach(function(transport) {
+        "ws sse streamxhr streamxdr streamiframe longpollajax longpollxdr longpolljsonp".split(" ").forEach(function(transport) {
             describe(transport, function() {
                 suite(transport);
             });
