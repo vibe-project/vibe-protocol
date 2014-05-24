@@ -1,15 +1,15 @@
 {
-  "name": "react-protocol",
+  "name": "vibe-protocol",
   "version": "3.0.0-Alpha1",
-  "homepage": "http://atmosphere.github.io/react/",
-  "description": "A reference implementation and test suite of react protocol",
+  "homepage": "http://atmosphere.github.io/vibe/",
+  "description": "A reference implementation and test suite of vibe protocol",
   "author": {
     "name": "Donghwan Kim",
     "email": "flowersinthesand@gmail.com"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/atmosphere/react-protocol.git"
+    "url": "https://github.com/atmosphere/vibe-protocol.git"
   },
   "license": "Apache License, Version 2.0",
   "main": "./lib/index",

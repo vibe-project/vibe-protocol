@@ -1,13 +1,13 @@
 // A reusable test suite to verify the server implementation
 var should = require("chai").should();
 var http = require("http");
-var react = require("../lib/index");
+var vibe = require("../lib/index");
 
 http.globalAgent.maxSockets = Infinity;
 
 describe("server", function() {
-    // Endpoint of the react server to be tested
-    var uri = "http://localhost:8000/react";
+    // Endpoint of the vibe server to be tested
+    var uri = "http://localhost:8000/vibe";
 
     this.timeout(10000);
     
@@ -15,9 +15,9 @@ describe("server", function() {
         var self = this;
         // A container for active socket to close them after each test
         var sockets = [];
-        // Override react.open to capture socket
-        self.open = react.open;
-        react.open = function open() {
+        // Override vibe.open to capture socket
+        self.open = vibe.open;
+        vibe.open = function open() {
             return self.open.apply(this, arguments)
             .on("open", function() {
                 sockets.push(this);
@@ -38,14 +38,14 @@ describe("server", function() {
     });
     after(function() {
         // Restore the original method
-        react.open = this.open;
+        vibe.open = this.open;
     });
     
     describe("transport", function() {
         function suite(transport) {
             describe("open", function() {
                 it("should open a new socket", function(done) {
-                    react.open(uri, {transport: transport})
+                    vibe.open(uri, {transport: transport})
                     .on("open", function() {
                         done();
                     });
@@ -53,7 +53,7 @@ describe("server", function() {
             });
             describe("close", function() {
                 it("should close the socket if the client requests it", function(done) {
-                    react.open(uri, {transport: transport})
+                    vibe.open(uri, {transport: transport})
                     .on("open", function() {
                         this.close();
                     })
@@ -62,7 +62,7 @@ describe("server", function() {
                     });
                 });
                 it("should close the socket if the server requests it", function(done) {
-                    react.open(uri, {transport: transport})
+                    vibe.open(uri, {transport: transport})
                     .on("open", function() {
                         http.get(uri + "?id=" + this.id + "&when=abort");
                     })
@@ -73,7 +73,7 @@ describe("server", function() {
             });
             describe("exchange", function() {
                 it("should exchange an event", function(done) {
-                    react.open(uri, {transport: transport})
+                    vibe.open(uri, {transport: transport})
                     .on("open", function() {
                         this.send("echo", "data");
                     })
@@ -83,7 +83,7 @@ describe("server", function() {
                     });
                 });
                 it("should exchange an event containing of multi-byte characters", function(done) {
-                    react.open(uri, {transport: transport})
+                    vibe.open(uri, {transport: transport})
                     .on("open", function() {
                         this.send("echo", "라면");
                     })
@@ -94,7 +94,7 @@ describe("server", function() {
                 });
                 it("should exchange an event of 2KB", function(done) {
                     var text2KB = Array(2048).join("K");
-                    react.open(uri, {transport: transport})
+                    vibe.open(uri, {transport: transport})
                     .on("open", function() {
                         this.send("echo", text2KB);
                     })
@@ -105,7 +105,7 @@ describe("server", function() {
                 });
                 it("should not lose any event in an exchange of one hundred of event", function(done) {
                     var timer, sent = [], received = [];
-                    react.open(uri, {transport: transport})
+                    vibe.open(uri, {transport: transport})
                     .on("open", function() {
                         for (var i = 0; i < 100; i++) {
                             sent.push(i);
@@ -126,7 +126,7 @@ describe("server", function() {
             });
             describe("reply", function() {
                 it("should handle reply requested by the client", function(done) {
-                    react.open(uri, {transport: transport})
+                    vibe.open(uri, {transport: transport})
                     .on("open", function() {
                         function fail() { true.should.be.false; }
                         this.send("replyable", true, function(value) {
@@ -141,7 +141,7 @@ describe("server", function() {
             });
             describe("heartbeat", function() {
                 it("should support heartbeat", function(done) {
-                    react.open(uri, {transport: transport, heartbeat: 400, _heartbeat: 200})
+                    vibe.open(uri, {transport: transport, heartbeat: 400, _heartbeat: 200})
                     .once("heartbeat", function() {
                         this.once("heartbeat", function() {
                             this.once("heartbeat", function() {
@@ -151,7 +151,7 @@ describe("server", function() {
                     });
                 });
                 it("should close the socket if heartbeat fails", function(done) {
-                    react.open(uri, {transport: transport, heartbeat: 400, _heartbeat: 200})
+                    vibe.open(uri, {transport: transport, heartbeat: 400, _heartbeat: 200})
                     .on("open", function() {
                         this.send = function() { return this; };
                     })

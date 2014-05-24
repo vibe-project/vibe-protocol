@@ -3,7 +3,7 @@ var should = require("chai").should();
 var url = require("url");
 var http = require("http");
 var querystring = require("querystring");
-var react = require("../lib/index");
+var vibe = require("../lib/index");
 
 http.globalAgent.maxSockets = Infinity;
 
@@ -15,7 +15,7 @@ describe("client", function() {
         var self = this;
         // A container for active socket to close them after each test
         var sockets = [];
-        var server = react.server().on("socket", function(socket) {
+        var server = vibe.server().on("socket", function(socket) {
             sockets.push(socket);
             // Remove the closed one
             socket.on("close", function() {
@@ -32,14 +32,14 @@ describe("client", function() {
                 netSockets.splice(netSockets.indexOf(socket), 1);
             });
         });
-        // Install a react server on a web server
+        // Install a vibe server on a web server
         httpServer.on("request", function(req, res) {
-            if (url.parse(req.url).pathname === "/react") {
+            if (url.parse(req.url).pathname === "/vibe") {
                 server.handleRequest(req, res);
             }
         })
         .on("upgrade", function(req, sock, head) {
-            if (url.parse(req.url).pathname === "/react") {
+            if (url.parse(req.url).pathname === "/vibe") {
                 server.handleUpgrade(req, sock, head);
             }
         });
@@ -48,7 +48,7 @@ describe("client", function() {
             var port = this.address().port;
             // This method is to tell client to connect this server 
             self.order = function(params) {
-                params.uri = "http://localhost:" + port + "/react";
+                params.uri = "http://localhost:" + port + "/vibe";
                 params.heartbeat = params.heartbeat || false;
                 params._heartbeat = params._heartbeat || false;
                 http.get("http://localhost:9000/open?" + querystring.stringify(params));

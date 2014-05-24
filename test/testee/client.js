@@ -1,4 +1,4 @@
-var react = require("../../lib/index");
+var vibe = require("../../lib/index");
 var url = require("url");
 var http = require("http");
 
@@ -9,7 +9,7 @@ http.createServer(function(req, res) {
     switch (urlObj.pathname) {
     case "/open":
         var query = urlObj.query;
-        react.open(query.uri, {transport: query.transport, heartbeat: +query.heartbeat || false, _heartbeat: +query._heartbeat || false})
+        vibe.open(query.uri, {transport: query.transport, heartbeat: +query.heartbeat || false, _heartbeat: +query._heartbeat || false})
         .on("abort", function() {
             this.close();
         })
