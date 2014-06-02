@@ -9,8 +9,7 @@ var sid = process.env.VIBE_TEST_SESSION_ID;
 http.globalAgent.maxSockets = Infinity;
 
 describe("client", function() {
-    // Increase timeout for Internet Explorer 6-8
-    this.timeout(10000);
+    this.timeout(20 * 1000);
     
     before(function(done) {
         var self = this;
@@ -162,19 +161,22 @@ describe("client", function() {
                     this.server.on("socket", function(socket) {
                         socket.on("echo", function(i) {
                             received.push(i);
+                            received.sort();
                             clearTimeout(timer);
                             timer = setTimeout(function() {
-                                received.sort();
                                 received.should.be.deep.equal(sent);
                                 done();
-                            // Increase timeout for Internet Explorer 6-8
-                            }, 1000);
+                            }, 1500);
                         });
                         for (var i = 0; i < 100; i++) {
-                            sent.push(i);
-                            socket.send("echo", i);
+                            (function(i) {
+                                setTimeout(function() {
+                                    sent.push(i);
+                                    sent.sort();
+                                    socket.send("echo", i);
+                                }, 10);
+                            })(i);
                         }
-                        sent.sort();
                     });
                 });
             });
@@ -195,7 +197,7 @@ describe("client", function() {
             });
             describe("heartbeat", function() {
                 it("should support heartbeat", function(done) { 
-                    this.order({transport: transport, heartbeat: 400, _heartbeat: 200});
+                    this.order({transport: transport, heartbeat: 2500, _heartbeat: 2400});
                     this.server.on("socket", function(socket) {
                         socket.once("heartbeat", function() {
                             this.once("heartbeat", function() {
@@ -207,7 +209,7 @@ describe("client", function() {
                     });
                 });
                 it("should close the socket if heartbeat fails", function(done) {
-                    this.order({transport: transport, heartbeat: 400, _heartbeat: 200});
+                    this.order({transport: transport, heartbeat: 2500, _heartbeat: 2400});
                     this.server.on("socket", function(socket) {
                         socket.send = function() { return this; };
                         socket.on("close", function() {
