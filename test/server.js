@@ -9,7 +9,7 @@ describe("server", function() {
     // Endpoint of the vibe server to be tested
     var uri = "http://localhost:8000/vibe";
 
-    this.timeout(10000);
+    this.timeout(20 * 1000);
     
     before(function() {
         var self = this;
@@ -107,20 +107,25 @@ describe("server", function() {
                     var timer, sent = [], received = [];
                     vibe.open(uri, {transport: transport})
                     .on("open", function() {
+                        var self = this;
                         for (var i = 0; i < 100; i++) {
-                            sent.push(i);
-                            this.send("echo", i);
+                            (function(i) {
+                                setTimeout(function() {
+                                    sent.push(i);
+                                    sent.sort();
+                                    self.send("echo", i);
+                                }, 10);
+                            })(i);
                         }
-                        sent.sort();
                     })
                     .on("echo", function(i) {
                         received.push(i);
+                        received.sort();
                         clearTimeout(timer);
                         timer = setTimeout(function() {
-                            received.sort();
                             received.should.be.deep.equal(sent);
                             done();
-                        }, 200);
+                        }, 1500);
                     });
                 });
             });
@@ -141,7 +146,7 @@ describe("server", function() {
             });
             describe("heartbeat", function() {
                 it("should support heartbeat", function(done) {
-                    vibe.open(uri, {transport: transport, heartbeat: 400, _heartbeat: 200})
+                    vibe.open(uri, {transport: transport, heartbeat: 2500, _heartbeat: 2400})
                     .once("heartbeat", function() {
                         this.once("heartbeat", function() {
                             this.once("heartbeat", function() {
@@ -151,7 +156,7 @@ describe("server", function() {
                     });
                 });
                 it("should close the socket if heartbeat fails", function(done) {
-                    vibe.open(uri, {transport: transport, heartbeat: 400, _heartbeat: 200})
+                    vibe.open(uri, {transport: transport, heartbeat: 2500, _heartbeat: 2400})
                     .on("open", function() {
                         this.send = function() { return this; };
                     })
