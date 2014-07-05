@@ -86,143 +86,182 @@ describe("client", function() {
                 socket.destroy();
             });
             this.httpServer.close(function() {
-                done();   
+                done();
             });
         }.bind(this), 10);
     });
     
     describe("transport", function() {
-        // TODO exclude test considering transport's quirks
-        function suite(transport) {
-            describe("open", function() {
-                it("should open a new socket", function(done) {
-                    this.order({transport: transport});
-                    this.server.on("socket", function() {
-                        done();
-                    });
-                });
-            });
-            describe("close", function() {
-                // Some old browser's transports can't pass so they have to use heartbeat
-                it("should close the socket if the server requests it", function(done) {
-                    this.order({transport: transport});
-                    this.server.on("socket", function(socket) {
-                        socket.on("close", function() {
-                            done();
-                        })
-                        .close();
-                    });
-                });
-                it("should close the socket if the client requests it", function(done) {
-                    this.order({transport: transport});
-                    this.server.on("socket", function(socket) {
-                        socket.on("close", function() {
-                            done();
-                        })
-                        .send("abort");
-                    });
-                });
-            });
-            describe("exchange", function() {
-                it("should exchange an event", function(done) {
-                    this.order({transport: transport});
-                    this.server.on("socket", function(socket) {
-                        socket.on("echo", function(data) {
-                            data.should.be.equal("data");
-                            done();
-                        })
-                        .send("echo", "data");
-                    });
-                });
-                it("should exchange an event containing of multi-byte characters", function(done) {
-                    this.order({transport: transport});
-                    this.server.on("socket", function(socket) {
-                        socket.on("echo", function(data) {
-                            data.should.be.equal("라면");
-                            done();
-                        })
-                        .send("echo", "라면");
-                    });
-                });
-                it("should exchange an event of 2KB", function(done) {
-                    var text2KB = Array(2048).join("K");
-                    this.order({transport: transport});
-                    this.server.on("socket", function(socket) {
-                        socket.on("echo", function(data) {
-                            data.should.be.equal(text2KB);
-                            done();
-                        })
-                        .send("echo", text2KB);
-                    });
-                });
-                it("should not lose any event in an exchange of one hundred of event", function(done) {
-                    var timer, sent = [], received = [];
-                    this.order({transport: transport});
-                    this.server.on("socket", function(socket) {
-                        socket.on("echo", function(i) {
-                            received.push(i);
-                            received.sort();
-                            clearTimeout(timer);
-                            timer = setTimeout(function() {
-                                received.should.be.deep.equal(sent);
-                                done();
-                            }, 1500);
-                        });
-                        for (var i = 0; i < 100; i++) {
-                            (function(i) {
-                                setTimeout(function() {
-                                    sent.push(i);
-                                    sent.sort();
-                                    socket.send("echo", i);
-                                }, 10);
-                            })(i);
-                        }
-                    });
-                });
-            });
-            describe("reply", function() {
-                it("should handle reply requested by the client", function(done) {
-                    this.order({transport: transport});
-                    this.server.on("socket", function(socket) {
-                        function fail() { true.should.be.false; }
-                        socket.send("replyable", true, function(value) {
-                            value.should.be.true;
-                            socket.send("replyable", false, fail, function(reason) {
-                                reason.should.be.false;
-                                done();
-                            });
-                        }, fail);
-                    });
-                });
-            });
-            describe("heartbeat", function() {
-                it("should support heartbeat", function(done) { 
-                    this.order({transport: transport, heartbeat: 2500, _heartbeat: 2400});
-                    this.server.on("socket", function(socket) {
-                        socket.once("heartbeat", function() {
-                            this.once("heartbeat", function() {
-                                this.once("heartbeat", function() {
-                                    done();
-                                }); 
-                            });
-                        });
-                    });
-                });
-                it("should close the socket if heartbeat fails", function(done) {
-                    this.order({transport: transport, heartbeat: 2500, _heartbeat: 2400});
-                    this.server.on("socket", function(socket) {
-                        socket.send = function() { return this; };
-                        socket.on("close", function() {
-                            done();
-                        });
-                    });
-                });
-            });
-        }
-        
         "ws sse streamxhr streamxdr streamiframe longpollajax longpollxdr longpolljsonp".split(" ").forEach(function(transport) {
+            // Per transport
             describe(transport, function() {
-                suite(transport);
+                // Protocol part
+                describe("protocol", function() {
+                    describe("open", function() {
+                        it("should open a new socket", function(done) {
+                            this.order({transport: transport});
+                            this.server.on("socket", function() {
+                                done();
+                            });
+                        });
+                    });
+                    describe("close", function() {
+                        // Some old browser's transports can't pass so they have to use heartbeat
+                        it("should close the socket if the server requests it", function(done) {
+                            this.order({transport: transport});
+                            this.server.on("socket", function(socket) {
+                                socket.on("close", function() {
+                                    done();
+                                })
+                                .close();
+                            });
+                        });
+                        it("should close the socket if the client requests it", function(done) {
+                            this.order({transport: transport});
+                            this.server.on("socket", function(socket) {
+                                socket.on("close", function() {
+                                    done();
+                                })
+                                .send("abort");
+                            });
+                        });
+                    });
+                    describe("exchange", function() {
+                        it("should exchange an event", function(done) {
+                            this.order({transport: transport});
+                            this.server.on("socket", function(socket) {
+                                socket.on("echo", function(data) {
+                                    data.should.be.equal("data");
+                                    done();
+                                })
+                                .send("echo", "data");
+                            });
+                        });
+                        it("should exchange an event containing of multi-byte characters", function(done) {
+                            this.order({transport: transport});
+                            this.server.on("socket", function(socket) {
+                                socket.on("echo", function(data) {
+                                    data.should.be.equal("라면");
+                                    done();
+                                })
+                                .send("echo", "라면");
+                            });
+                        });
+                        it("should exchange an event of 2KB", function(done) {
+                            var text2KB = Array(2048).join("K");
+                            this.order({transport: transport});
+                            this.server.on("socket", function(socket) {
+                                socket.on("echo", function(data) {
+                                    data.should.be.equal(text2KB);
+                                    done();
+                                })
+                                .send("echo", text2KB);
+                            });
+                        });
+                        it("should not lose any event in an exchange of one hundred of event", function(done) {
+                            var timer, sent = [], received = [];
+                            this.order({transport: transport});
+                            this.server.on("socket", function(socket) {
+                                socket.on("echo", function(i) {
+                                    received.push(i);
+                                    received.sort();
+                                    clearTimeout(timer);
+                                    timer = setTimeout(function() {
+                                        received.should.be.deep.equal(sent);
+                                        done();
+                                    }, 1500);
+                                });
+                                for (var i = 0; i < 100; i++) {
+                                    (function(i) {
+                                        setTimeout(function() {
+                                            sent.push(i);
+                                            sent.sort();
+                                            socket.send("echo", i);
+                                        }, 10);
+                                    })(i);
+                                }
+                            });
+                        });
+                    });
+                    describe("heartbeat", function() {
+                        it("should support heartbeat", function(done) { 
+                            this.order({transport: transport, heartbeat: 2500, _heartbeat: 2400});
+                            this.server.on("socket", function(socket) {
+                                socket.once("heartbeat", function() {
+                                    this.once("heartbeat", function() {
+                                        this.once("heartbeat", function() {
+                                            done();
+                                        }); 
+                                    });
+                                });
+                            });
+                        });
+                        it("should close the socket if heartbeat fails", function(done) {
+                            this.order({transport: transport, heartbeat: 2500, _heartbeat: 2400});
+                            this.server.on("socket", function(socket) {
+                                socket.send = function() { return this; };
+                                socket.on("close", function() {
+                                    done();
+                                });
+                            });
+                        });
+                    });
+                });
+                // Extension part
+                describe("extension", function() {
+                    describe("receiving replyable event", function() {
+                        it("should be able to resolve", function(done) {
+                            this.order({transport: transport});
+                            this.server.on("socket", function(socket) {
+                                socket.send("rre.resolve", Math.PI, function(value) {
+                                    value.should.be.equal(Math.PI);
+                                    done();
+                                }, function() {
+                                    true.should.be.false;
+                                });
+                            });
+                        });
+                        it("should be able to reject", function(done) {
+                            this.order({transport: transport});
+                            this.server.on("socket", function(socket) {
+                                socket.send("rre.reject", Math.PI, function() {
+                                    true.should.be.false;
+                                }, function(value) {
+                                    value.should.be.equal(Math.PI);
+                                    done();
+                                });
+                            });
+                        });
+                    });
+                    describe("sending replyable event", function() {
+                        it("should be able to resolve", function(done) {
+                            this.order({transport: transport});
+                            this.server.on("socket", function(socket) {
+                                socket.on("sre.resolve", function(data, reply) {
+                                    reply.resolve(data);
+                                })
+                                .on("sre.done", function(value) {
+                                    value.should.be.equal(Math.E);
+                                    done();
+                                })
+                                .send("sre.resolve", Math.E);
+                            });
+                        });
+                        it("should be able to reject", function(done) {
+                            this.order({transport: transport});
+                            this.server.on("socket", function(socket) {
+                                socket.on("sre.reject", function(data, reply) {
+                                    reply.reject(data);
+                                })
+                                .on("sre.done", function(value) {
+                                    value.should.be.equal(Math.E);
+                                    done();
+                                })
+                                .send("sre.reject", Math.E);
+                            });
+                        });
+                    });
+                });
             });
         });
     });

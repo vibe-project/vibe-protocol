@@ -7,12 +7,21 @@ server.on("socket", function(socket) {
     socket.on("echo", function(data) {
         socket.send("echo", data);
     })
-    .on("replyable", function(bool, reply) {
-        if (bool) {
-            reply.resolve(bool);
-        } else {
-            reply.reject(bool);
-        }
+    .on("rre.resolve", function(data, reply) {
+        reply.resolve(data);
+    })
+    .on("rre.reject", function(data, reply) {
+        reply.reject(data);
+    })
+    .on("sre.resolve", function(data) {
+        socket.send("sre.resolve", data, function(data) {
+            socket.send("sre.done", data);
+        });
+    })
+    .on("sre.reject", function(data) {
+        socket.send("sre.reject", data, null, function(data) {
+            socket.send("sre.done", data);
+        });
     });
 });
 
