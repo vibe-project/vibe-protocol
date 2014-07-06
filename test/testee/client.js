@@ -9,20 +9,25 @@ http.createServer(function(req, res) {
     switch (urlObj.pathname) {
     case "/open":
         var query = urlObj.query;
-        vibe.open(query.uri, {transport: query.transport, heartbeat: +query.heartbeat || false, _heartbeat: +query._heartbeat || false})
-        .on("abort", function() {
+        var socket = vibe.open(query.uri, {transport: query.transport, heartbeat: +query.heartbeat || false, _heartbeat: +query._heartbeat || false});
+        // To test protocol
+        socket.on("abort", function() {
             this.close();
         })
         .on("echo", function(data) {
             this.send("echo", data);
-        })
-        .on("rre.resolve", function(data, reply) {
+        });
+        
+        // To test extension
+        // receiving replyable event
+        socket.on("rre.resolve", function(data, reply) {
             reply.resolve(data);
         })
         .on("rre.reject", function(data, reply) {
             reply.reject(data);
-        })
-        .on("sre.resolve", function(data) {
+        });
+        // sending replyable event
+        socket.on("sre.resolve", function(data) {
             this.send("sre.resolve", data, function(data) {
                 this.send("sre.done", data);
             });

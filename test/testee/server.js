@@ -4,16 +4,21 @@ var http = require("http");
 
 var server = vibe.server();
 server.on("socket", function(socket) {
+    // To test protocol
     socket.on("echo", function(data) {
         socket.send("echo", data);
-    })
-    .on("rre.resolve", function(data, reply) {
+    });
+    
+    // To test extension
+    // receiving replyable event
+    socket.on("rre.resolve", function(data, reply) {
         reply.resolve(data);
     })
     .on("rre.reject", function(data, reply) {
         reply.reject(data);
-    })
-    .on("sre.resolve", function(data) {
+    });
+    // sending replyable event
+    socket.on("sre.resolve", function(data) {
         socket.send("sre.resolve", data, function(data) {
             socket.send("sre.done", data);
         });
