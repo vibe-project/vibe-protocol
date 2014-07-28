@@ -48,7 +48,7 @@ describe("server", function() {
                 // Protocol part
                 describe("protocol", function() {
                     describe("open", function() {
-                        it("should open a new socket", function(done) {
+                        it("should accept a new socket", function(done) {
                             vibe.open(uri, {transport: transport})
                             .on("open", function() {
                                 done();
@@ -56,21 +56,26 @@ describe("server", function() {
                         });
                     });
                     describe("close", function() {
-                        it("should close the socket if the client requests it", function(done) {
-                            vibe.open(uri, {transport: transport})
-                            .on("open", function() {
-                                this.close();
-                            })
-                            .on("close", function() {
-                                done();
-                            });
-                        });
-                        it("should close the socket if the server requests it", function(done) {
+                        it("should close the socket", function(done) {
                             vibe.open(uri, {transport: transport})
                             .on("open", function() {
                                 http.get(uri + "?id=" + this.id + "&when=abort");
                             })
                             .on("close", function() {
+                                done();
+                            });
+                        });
+                        it("should detect the client's disconnection", function(done) {
+                            vibe.open(uri, {transport: transport})
+                            .on("open", function() {
+                                this.close();
+                            })
+                            .on("close", function() {
+                                // TODO This is not accurate
+                                // To confirm that the server detects the
+                                // server's disconnection and fires the
+                                // close event, we should inquire to the
+                                // testee or artificial abort request
                                 done();
                             });
                         });

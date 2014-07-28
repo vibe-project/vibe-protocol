@@ -106,23 +106,27 @@ describe("client", function() {
                         });
                     });
                     describe("close", function() {
-                        // Some old browser's transports can't pass so they have to use heartbeat
-                        it("should close the socket if the server requests it", function(done) {
-                            this.order({transport: transport});
-                            this.server.on("socket", function(socket) {
-                                socket.on("close", function() {
-                                    done();
-                                })
-                                .close();
-                            });
-                        });
-                        it("should close the socket if the client requests it", function(done) {
+                        it("should close the socket", function(done) {
                             this.order({transport: transport});
                             this.server.on("socket", function(socket) {
                                 socket.on("close", function() {
                                     done();
                                 })
                                 .send("abort");
+                            });
+                        });
+                        it("should detect the server's disconnection", function(done) {
+                            this.order({transport: transport});
+                            this.server.on("socket", function(socket) {
+                                socket.on("close", function() {
+                                    // TODO This is not accurate
+                                    // To confirm that the client detects the
+                                    // server's disconnection and fires the
+                                    // close event, we should inquire to the
+                                    // testee
+                                    done();
+                                })
+                                .close();
                             });
                         });
                     });
