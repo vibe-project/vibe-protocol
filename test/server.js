@@ -59,7 +59,10 @@ describe("server", function() {
                         it("should close the socket", function(done) {
                             vibe.open(uri, {transport: transport})
                             .on("open", function() {
-                                http.get(uri + "?id=" + this.id + "&when=abort");
+                                var self = this;
+                                setTimeout(function() {
+                                    http.get(uri + "?id=" + self.id + "&when=abort");
+                                }, 10);
                             })
                             .on("close", function() {
                                 done();
