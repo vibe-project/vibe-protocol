@@ -1,4 +1,5 @@
 var vibe = require("../../lib/index");
+var client = vibe.client();
 var url = require("url");
 var http = require("http");
 
@@ -9,7 +10,7 @@ http.createServer(function(req, res) {
     switch (urlObj.pathname) {
     case "/open":
         var query = urlObj.query;
-        var socket = vibe.open(query.uri, {transport: query.transport, heartbeat: +query.heartbeat || false, _heartbeat: +query._heartbeat || false});
+        var socket = client.open(query.uri, {transport: query.transport, heartbeat: +query.heartbeat || false, _heartbeat: +query._heartbeat || false});
         // To test protocol
         socket.on("abort", function() {
             this.close();

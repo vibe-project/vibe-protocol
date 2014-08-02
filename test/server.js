@@ -2,6 +2,7 @@
 var should = require("chai").should();
 var http = require("http");
 var vibe = require("../lib/index");
+var client = vibe.client();
 
 http.globalAgent.maxSockets = Infinity;
 
@@ -15,9 +16,9 @@ describe("server", function() {
         var self = this;
         // A container for active socket to close them after each test
         var sockets = [];
-        // Override vibe.open to capture socket
-        self.open = vibe.open;
-        vibe.open = function open() {
+        // Override client.open to capture socket
+        self.open = client.open;
+        client.open = function open() {
             return self.open.apply(this, arguments)
             .on("open", function() {
                 sockets.push(this);
@@ -38,7 +39,7 @@ describe("server", function() {
     });
     after(function() {
         // Restore the original method
-        vibe.open = this.open;
+        client.open = this.open;
     });
     
     describe("transport", function() {
@@ -49,7 +50,7 @@ describe("server", function() {
                 describe("protocol", function() {
                     describe("open", function() {
                         it("should accept a new socket", function(done) {
-                            vibe.open(uri, {transport: transport})
+                            client.open(uri, {transport: transport})
                             .on("open", function() {
                                 done();
                             });
@@ -57,7 +58,7 @@ describe("server", function() {
                     });
                     describe("close", function() {
                         it("should close the socket", function(done) {
-                            vibe.open(uri, {transport: transport})
+                            client.open(uri, {transport: transport})
                             .on("open", function() {
                                 var self = this;
                                 setTimeout(function() {
@@ -69,7 +70,7 @@ describe("server", function() {
                             });
                         });
                         it("should detect the client's disconnection", function(done) {
-                            vibe.open(uri, {transport: transport})
+                            client.open(uri, {transport: transport})
                             .on("open", function() {
                                 this.close();
                             })
@@ -85,7 +86,7 @@ describe("server", function() {
                     });
                     describe("exchange", function() {
                         it("should exchange an event", function(done) {
-                            vibe.open(uri, {transport: transport})
+                            client.open(uri, {transport: transport})
                             .on("open", function() {
                                 this.send("echo", "data");
                             })
@@ -95,7 +96,7 @@ describe("server", function() {
                             });
                         });
                         it("should exchange an event containing of multi-byte characters", function(done) {
-                            vibe.open(uri, {transport: transport})
+                            client.open(uri, {transport: transport})
                             .on("open", function() {
                                 this.send("echo", "라면");
                             })
@@ -106,7 +107,7 @@ describe("server", function() {
                         });
                         it("should exchange an event of 2KB", function(done) {
                             var text2KB = Array(2048).join("K");
-                            vibe.open(uri, {transport: transport})
+                            client.open(uri, {transport: transport})
                             .on("open", function() {
                                 this.send("echo", text2KB);
                             })
@@ -117,7 +118,7 @@ describe("server", function() {
                         });
                         it("should not lose any event in an exchange of one hundred of event", function(done) {
                             var timer, sent = [], received = [];
-                            vibe.open(uri, {transport: transport})
+                            client.open(uri, {transport: transport})
                             .on("open", function() {
                                 var self = this;
                                 for (var i = 0; i < 100; i++) {
@@ -143,7 +144,7 @@ describe("server", function() {
                     });
                     describe("heartbeat", function() {
                         it("should support heartbeat", function(done) {
-                            vibe.open(uri, {transport: transport, heartbeat: 2500, _heartbeat: 2400})
+                            client.open(uri, {transport: transport, heartbeat: 2500, _heartbeat: 2400})
                             .once("heartbeat", function() {
                                 this.once("heartbeat", function() {
                                     this.once("heartbeat", function() {
@@ -153,7 +154,7 @@ describe("server", function() {
                             });
                         });
                         it("should close the socket if heartbeat fails", function(done) {
-                            vibe.open(uri, {transport: transport, heartbeat: 2500, _heartbeat: 2400})
+                            client.open(uri, {transport: transport, heartbeat: 2500, _heartbeat: 2400})
                             .on("open", function() {
                                 this.send = function() { return this; };
                             })
@@ -167,7 +168,7 @@ describe("server", function() {
                 describe("extension", function() {
                     describe("receiving replyable event", function() {
                         it("should be able to resolve", function(done) {
-                            vibe.open(uri, {transport: transport})
+                            client.open(uri, {transport: transport})
                             .on("open", function() {
                                 this.send("rre.resolve", Math.PI, function(value) {
                                     value.should.be.equal(Math.PI);
@@ -178,7 +179,7 @@ describe("server", function() {
                             });
                         });
                         it("should be able to reject", function(done) {
-                            vibe.open(uri, {transport: transport})
+                            client.open(uri, {transport: transport})
                             .on("open", function() {
                                 this.send("rre.reject", Math.PI, function() {
                                     true.should.be.false;
@@ -191,7 +192,7 @@ describe("server", function() {
                     });
                     describe("sending replyable event", function() {
                         it("should be able to resolve", function(done) {
-                            vibe.open(uri, {transport: transport})
+                            client.open(uri, {transport: transport})
                             .on("open", function() {
                                 this.send("sre.resolve", Math.E);
                             })
@@ -204,7 +205,7 @@ describe("server", function() {
                             });
                         });
                         it("should be able to reject", function(done) {
-                            vibe.open(uri, {transport: transport})
+                            client.open(uri, {transport: transport})
                             .on("open", function() {
                                 this.send("sre.reject", Math.E);
                             })
