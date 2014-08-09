@@ -17,13 +17,13 @@
     "test": "grunt"
   },
   "dependencies": {
-    "ws": "0.4.31",
+    "ws": "0.4.32",
     "node-uuid": "1.4.1",
-    "eventsource": "0.1.0"
+    "eventsource": "0.1.2"
   },
   "devDependencies": {
-    "grunt": "^0.4.4",
-    "mocha": "^1.18.2",
+    "grunt": "^0.4.5",
+    "mocha": "^1.21.4",
     "chai": "^1.9.1"
   }
 }
