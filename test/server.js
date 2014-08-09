@@ -61,10 +61,7 @@ describe("server", function() {
                         it("should close the socket", function(done) {
                             client.open(uri, {transport: transport})
                             .on("open", function() {
-                                var self = this;
-                                setTimeout(function() {
-                                    http.get(uri + "?id=" + self.id + "&when=abort");
-                                }, 10);
+                                http.get(uri + "?id=" + this.id + "&when=abort");
                             })
                             .on("close", function() {
                                 done();
