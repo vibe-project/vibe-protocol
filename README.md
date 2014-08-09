@@ -1,5 +1,4 @@
 ## Vibe Protocol
-[![Build Status](http://img.shields.io/travis/Atmosphere/vibe-protocol/master.svg?style=flat)](https://travis-ci.org/Atmosphere/vibe-protocol)
 
 <p>Vibe Protocol is a protocol based on web standards <sup><strong>A</strong></sup> to provide reliable full duplex connection over HTTP <sup><strong>B</strong></sup> and elegant patterns to write real-time web applications <sup><strong>C</strong></sup>. Also it provides the test suite to verify your client or server implementation. <sup><strong>D</strong></sup></p>
 
