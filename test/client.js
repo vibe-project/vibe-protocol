@@ -116,6 +116,7 @@ describe("client", function() {
                             });
                         });
                         it("should detect the server's disconnection", function(done) {
+                            var test = this.test;
                             // A client who can't detect disconnection will notice it by heartbeat
                             this.order({transport: transport, heartbeat: 10000, _heartbeat: 5000});
                             this.server.on("socket", function(socket) {
@@ -129,7 +130,7 @@ describe("client", function() {
                                         .on("end", function() {
                                             if (body === "false") {
                                                 done();
-                                            } else {
+                                            } else if (!test.timedOut) {
                                                 setTimeout(check, 1000);
                                             }
                                         });

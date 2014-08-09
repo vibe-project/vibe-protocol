@@ -72,6 +72,7 @@ describe("server", function() {
                         });
                         it("should detect the client's disconnection", function(done) {
                             var id;
+                            var test = this.test;
                             // A server who can't detect disconnection will notice it by heartbeat
                             client.open(uri, {transport: transport, heartbeat: 10000, _heartbeat: 5000})
                             .on("open", function() {
@@ -87,7 +88,7 @@ describe("server", function() {
                                     .on("end", function() {
                                         if (body === "false") {
                                             done();
-                                        } else {
+                                        } else if (!test.timedOut) {
                                             setTimeout(check, 1000);
                                         }
                                     });
