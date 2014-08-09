@@ -5,14 +5,21 @@ var http = require("http");
 
 http.globalAgent.maxSockets = Infinity;
 
+var sockets = {};
 http.createServer(function(req, res) {
     var urlObj = url.parse(req.url, true);
+    var query = urlObj.query;
     switch (urlObj.pathname) {
     case "/open":
-        var query = urlObj.query;
         var socket = client.open(query.uri, {transport: query.transport, heartbeat: +query.heartbeat || false, _heartbeat: +query._heartbeat || false});
         // To test protocol
-        socket.on("abort", function() {
+        socket.on("open", function() {
+            sockets[this.id] = this;
+        })
+        .on("close", function() {
+            delete sockets[this.id];
+        })
+        .on("abort", function() {
             this.close();
         })
         .on("echo", function(data) {
@@ -39,6 +46,9 @@ http.createServer(function(req, res) {
             });
         });
         res.end();
+        break;
+    case "/alive":
+        res.end("" + (query.id in sockets));
         break;
     }
 })

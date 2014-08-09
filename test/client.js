@@ -116,15 +116,24 @@ describe("client", function() {
                             });
                         });
                         it("should detect the server's disconnection", function(done) {
-                            this.order({transport: transport});
+                            // A client who can't detect disconnection will notice it by heartbeat
+                            this.order({transport: transport, heartbeat: 10000, _heartbeat: 5000});
                             this.server.on("socket", function(socket) {
-                                socket.on("close", function() {
-                                    // TODO This is not accurate
-                                    // To confirm that the client detects the
-                                    // server's disconnection and fires the
-                                    // close event, we should inquire to the
-                                    // testee
-                                    done();
+                                var id = socket.id;
+                                socket.on("close", function check() {
+                                    http.get("http://localhost:9000/alive?id=" + id, function(res) {
+                                        var body = "";
+                                        res.on("data", function(chunk) {
+                                            body += chunk;
+                                        })
+                                        .on("end", function() {
+                                            if (body === "false") {
+                                                done();
+                                            } else {
+                                                setTimeout(check, 1000);
+                                            }
+                                        });
+                                    });
                                 })
                                 .close();
                             });

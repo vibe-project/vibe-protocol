@@ -8,7 +8,8 @@ http.globalAgent.maxSockets = Infinity;
 
 describe("server", function() {
     // Endpoint of the vibe server to be tested
-    var uri = "http://localhost:8000/vibe";
+    var host = "http://localhost:8000";
+    var uri = host + "/vibe";
 
     this.timeout(20 * 1000);
     
@@ -70,17 +71,27 @@ describe("server", function() {
                             });
                         });
                         it("should detect the client's disconnection", function(done) {
-                            client.open(uri, {transport: transport})
+                            var id;
+                            // A server who can't detect disconnection will notice it by heartbeat
+                            client.open(uri, {transport: transport, heartbeat: 10000, _heartbeat: 5000})
                             .on("open", function() {
+                                id = this.id;
                                 this.close();
                             })
-                            .on("close", function() {
-                                // TODO This is not accurate
-                                // To confirm that the server detects the
-                                // server's disconnection and fires the
-                                // close event, we should inquire to the
-                                // testee or artificial abort request
-                                done();
+                            .on("close", function check() {
+                                http.get(host + "/alive?id=" + id, function(res) {
+                                    var body = "";
+                                    res.on("data", function(chunk) {
+                                        body += chunk;
+                                    })
+                                    .on("end", function() {
+                                        if (body === "false") {
+                                            done();
+                                        } else {
+                                            setTimeout(check, 1000);
+                                        }
+                                    });
+                                });
                             });
                         });
                     });
