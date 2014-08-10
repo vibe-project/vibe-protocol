@@ -59,33 +59,47 @@ describe("server", function() {
                     });
                     describe("close", function() {
                         it("should close the socket", function(done) {
-                            client.open(uri, {transport: transport})
-                            .on("open", function() {
-                                http.get(uri + "?id=" + this.id + "&when=abort");
+                            var test = this.test;
+                            var socket = client.open(uri, {transport: transport})
+                            .on("open", function abort() {
+                                // This request aborts this socket in server
+                                http.get(uri + "?id=" + socket.id + "&when=abort", function() {
+                                    // The server may not have fired open event
+                                    // and the socket couldn't be aborted.
+                                    // Therefore, request again until the test
+                                    // is passed or timed out.
+                                    if (test.state !== "passed" && !test.timedOut) {
+                                        setTimeout(abort, 1000);
+                                    }
+                                });
                             })
                             .on("close", function() {
                                 done();
                             });
                         });
                         it("should detect the client's disconnection", function(done) {
-                            var id;
                             var test = this.test;
                             // A server who can't detect disconnection will notice it by heartbeat
-                            client.open(uri, {transport: transport, heartbeat: 10000, _heartbeat: 5000})
+                            var socket = client.open(uri, {transport: transport, heartbeat: 10000, _heartbeat: 5000})
                             .on("open", function() {
-                                id = this.id;
                                 this.close();
                             })
                             .on("close", function check() {
-                                http.get(host + "/alive?id=" + id, function(res) {
+                                // This request checks if this socket in server
+                                // is alive or not.
+                                http.get(host + "/alive?id=" + socket.id, function(res) {
                                     var body = "";
                                     res.on("data", function(chunk) {
                                         body += chunk;
                                     })
                                     .on("end", function() {
+                                        // The 'false' body means the server has
+                                        // no such socket that is a successful
+                                        // case. If not, request again until the
+                                        // server notices it.
                                         if (body === "false") {
                                             done();
-                                        } else if (!test.timedOut) {
+                                        } else if (test.state !== "passed" && !test.timedOut) {
                                             setTimeout(check, 1000);
                                         }
                                     });

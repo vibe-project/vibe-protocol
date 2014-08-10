@@ -112,6 +112,9 @@ describe("client", function() {
                                 socket.on("close", function() {
                                     done();
                                 })
+                                // Though the client couldn't fire open event
+                                // now, it will receive this event some time
+                                // later.
                                 .send("abort");
                             });
                         });
@@ -120,17 +123,22 @@ describe("client", function() {
                             // A client who can't detect disconnection will notice it by heartbeat
                             this.order({transport: transport, heartbeat: 10000, _heartbeat: 5000});
                             this.server.on("socket", function(socket) {
-                                var id = socket.id;
                                 socket.on("close", function check() {
-                                    http.get("http://localhost:9000/alive?id=" + id, function(res) {
+                                    // This request checks if this socket in
+                                    // client is alive or not.
+                                    http.get("http://localhost:9000/alive?id=" + socket.id, function(res) {
                                         var body = "";
                                         res.on("data", function(chunk) {
                                             body += chunk;
                                         })
                                         .on("end", function() {
+                                            // The 'false' body means the client has
+                                            // no such socket that is a successful
+                                            // case. If not, request again until the
+                                            // client notices it.
                                             if (body === "false") {
                                                 done();
-                                            } else if (!test.timedOut) {
+                                            } else if (test.state !== "passed" && !test.timedOut) {
                                                 setTimeout(check, 1000);
                                             }
                                         });
