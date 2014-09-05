@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/atmosphere/vibe-protocol.git"
+    "url": "https://github.com/vibe-project/vibe-protocol.git"
   },
   "license": "Apache License, Version 2.0",
   "main": "./lib/index",
