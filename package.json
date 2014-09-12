@@ -1,7 +1,7 @@
 {
   "name": "vibe-protocol",
   "version": "3.0.0-Alpha1",
-  "homepage": "http://atmosphere.github.io/vibe/projects/vibe-protocol/",
+  "homepage": "http://vibe-project.github.io/projects/vibe-protocol/",
   "description": "A reference implementation and test suite of vibe protocol",
   "author": {
     "name": "Donghwan Kim",

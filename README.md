@@ -13,4 +13,4 @@
     <dd>You don't need to take trouble to demonstrate your implementation works correctly. Just show test arguments and result.</dd>
 </dl>
 
-Please see the [website](http://atmosphere.github.io/vibe/projects/vibe-protocol/) for full documentation.
+Please see the [website](http://vibe-project.github.io/projects/vibe-protocol/) for full documentation.
