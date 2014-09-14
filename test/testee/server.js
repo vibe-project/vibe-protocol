@@ -5,7 +5,7 @@ var http = require("http");
 var server = vibe.server();
 var sockets = {};
 server.on("socket", function(socket) {
-    // To test protocol
+    // Test protocol
     sockets[socket.id] = socket;
     socket.on("close", function() {
         delete sockets[socket.id];
@@ -14,24 +14,31 @@ server.on("socket", function(socket) {
         socket.send("echo", data);
     });
     
-    // To test extension
-    // receiving replyable event
-    socket.on("rre.resolve", function(data, reply) {
-        reply.resolve(data);
+    // Test extension
+    // reply
+    socket.on("/reply/inbound", function(data, reply) {
+        switch (data.type) {
+        case "resolved":
+            reply.resolve(data.data);
+            break;
+        case "rejected":
+            reply.reject(data.data);
+            break;
+        }
     })
-    .on("rre.reject", function(data, reply) {
-        reply.reject(data);
-    });
-    // sending replyable event
-    socket.on("sre.resolve", function(data) {
-        socket.send("sre.resolve", data, function(data) {
-            socket.send("sre.done", data);
-        });
-    })
-    .on("sre.reject", function(data) {
-        socket.send("sre.reject", data, null, function(data) {
-            socket.send("sre.done", data);
-        });
+    .on("/reply/outbound", function(data) {
+        switch (data.type) {
+        case "resolved":
+            this.send("test", data.data, function(data) {
+                this.send("done", data);
+            });
+            break;
+        case "rejected":
+            this.send("test", data.data, null, function(data) {
+                this.send("done", data);
+            });
+            break;
+        }
     });
 });
 

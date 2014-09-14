@@ -12,7 +12,7 @@ http.createServer(function(req, res) {
     switch (urlObj.pathname) {
     case "/open":
         var socket = client.open(query.uri, {transport: query.transport, heartbeat: +query.heartbeat || false, _heartbeat: +query._heartbeat || false});
-        // To test protocol
+        // Test protocol
         socket.on("open", function() {
             sockets[this.id] = this;
         })
@@ -26,24 +26,31 @@ http.createServer(function(req, res) {
             this.send("echo", data);
         });
         
-        // To test extension
-        // receiving replyable event
-        socket.on("rre.resolve", function(data, reply) {
-            reply.resolve(data);
+        // Test extension
+        // reply
+        socket.on("/reply/inbound", function(data, reply) {
+            switch (data.type) {
+            case "resolved":
+                reply.resolve(data.data);
+                break;
+            case "rejected":
+                reply.reject(data.data);
+                break;
+            }
         })
-        .on("rre.reject", function(data, reply) {
-            reply.reject(data);
-        });
-        // sending replyable event
-        socket.on("sre.resolve", function(data) {
-            this.send("sre.resolve", data, function(data) {
-                this.send("sre.done", data);
-            });
-        })
-        .on("sre.reject", function(data) {
-            this.send("sre.reject", data, null, function(data) {
-                this.send("sre.done", data);
-            });
+        .on("/reply/outbound", function(data) {
+            switch (data.type) {
+            case "resolved":
+                this.send("test", data.data, function(data) {
+                    this.send("done", data);
+                });
+                break;
+            case "rejected":
+                this.send("test", data.data, null, function(data) {
+                    this.send("done", data);
+                });
+                break;
+            }
         });
         res.end();
         break;

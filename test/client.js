@@ -231,11 +231,12 @@ describe("client", function() {
                 });
                 // Extension part
                 describe("extension", function() {
-                    describe("receiving replyable event", function() {
-                        it("should be able to resolve", function(done) {
+                    // Reply
+                    describe("reply", function() {
+                        it("should execute the resolve callback when receiving event", function(done) {
                             this.order({transport: transport});
                             this.server.on("socket", function(socket) {
-                                socket.send("rre.resolve", Math.PI, function(value) {
+                                socket.send("/reply/inbound", {type: "resolved", data: Math.PI}, function(value) {
                                     value.should.be.equal(Math.PI);
                                     done();
                                 }, function() {
@@ -243,10 +244,10 @@ describe("client", function() {
                                 });
                             });
                         });
-                        it("should be able to reject", function(done) {
+                        it("should execute the reject callback when receiving event", function(done) {
                             this.order({transport: transport});
                             this.server.on("socket", function(socket) {
-                                socket.send("rre.reject", Math.PI, function() {
+                                socket.send("/reply/inbound", {type: "rejected", data: Math.PI}, function() {
                                     true.should.be.false;
                                 }, function(value) {
                                     value.should.be.equal(Math.PI);
@@ -254,32 +255,30 @@ describe("client", function() {
                                 });
                             });
                         });
-                    });
-                    describe("sending replyable event", function() {
-                        it("should be able to resolve", function(done) {
+                        it("should execute the resolve callback when sending event", function(done) {
                             this.order({transport: transport});
                             this.server.on("socket", function(socket) {
-                                socket.on("sre.resolve", function(data, reply) {
+                                socket.on("test", function(data, reply) {
                                     reply.resolve(data);
+                                    this.on("done", function(value) {
+                                        value.should.be.equal(Math.E);
+                                        done();
+                                    });
                                 })
-                                .on("sre.done", function(value) {
-                                    value.should.be.equal(Math.E);
-                                    done();
-                                })
-                                .send("sre.resolve", Math.E);
+                                .send("/reply/outbound", {type: "resolved", data: Math.E});
                             });
                         });
-                        it("should be able to reject", function(done) {
+                        it("should execute the reject callback when sending event", function(done) {
                             this.order({transport: transport});
                             this.server.on("socket", function(socket) {
-                                socket.on("sre.reject", function(data, reply) {
+                                socket.on("test", function(data, reply) {
                                     reply.reject(data);
+                                    this.on("done", function(value) {
+                                        value.should.be.equal(Math.E);
+                                        done();
+                                    });
                                 })
-                                .on("sre.done", function(value) {
-                                    value.should.be.equal(Math.E);
-                                    done();
-                                })
-                                .send("sre.reject", Math.E);
+                                .send("/reply/outbound", {type: "rejected", data: Math.E});
                             });
                         });
                     });

@@ -189,11 +189,12 @@ describe("server", function() {
                 });
                 // Extension part
                 describe("extension", function() {
-                    describe("receiving replyable event", function() {
-                        it("should be able to resolve", function(done) {
+                    // Reply
+                    describe("reply", function() {
+                        it("should execute the resolve callback in receiving event", function(done) {
                             client.open(uri, {transport: transport})
                             .on("open", function() {
-                                this.send("rre.resolve", Math.PI, function(value) {
+                                this.send("/reply/inbound", {type: "resolved", data: Math.PI}, function(value) {
                                     value.should.be.equal(Math.PI);
                                     done();
                                 }, function() {
@@ -201,10 +202,10 @@ describe("server", function() {
                                 });
                             });
                         });
-                        it("should be able to reject", function(done) {
+                        it("should execute the reject callback in receiving event", function(done) {
                             client.open(uri, {transport: transport})
                             .on("open", function() {
-                                this.send("rre.reject", Math.PI, function() {
+                                this.send("/reply/inbound", {type: "rejected", data: Math.PI}, function() {
                                     true.should.be.false;
                                 }, function(value) {
                                     value.should.be.equal(Math.PI);
@@ -212,32 +213,30 @@ describe("server", function() {
                                 });
                             });
                         });
-                    });
-                    describe("sending replyable event", function() {
-                        it("should be able to resolve", function(done) {
+                        it("should execute the resolve callback in sending event", function(done) {
                             client.open(uri, {transport: transport})
                             .on("open", function() {
-                                this.send("sre.resolve", Math.E);
+                                this.send("/reply/outbound", {type: "resolved", data: Math.E});
                             })
-                            .on("sre.resolve", function(data, reply) {
+                            .on("test", function(data, reply) {
                                 reply.resolve(data);
-                            })
-                            .on("sre.done", function(value) {
-                                value.should.be.equal(Math.E);
-                                done();
+                                this.on("done", function(value) {
+                                    value.should.be.equal(Math.E);
+                                    done();
+                                });
                             });
                         });
-                        it("should be able to reject", function(done) {
+                        it("should execute the reject callback in sending event", function(done) {
                             client.open(uri, {transport: transport})
                             .on("open", function() {
-                                this.send("sre.reject", Math.E);
+                                this.send("/reply/outbound", {type: "rejected", data: Math.E});
                             })
-                            .on("sre.reject", function(data, reply) {
+                            .on("test", function(data, reply) {
                                 reply.reject(data);
-                            })
-                            .on("sre.done", function(value) {
-                                value.should.be.equal(Math.E);
-                                done();
+                                this.on("done", function(value) {
+                                    value.should.be.equal(Math.E);
+                                    done();
+                                });
                             });
                         });
                     });
