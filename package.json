@@ -2,7 +2,7 @@
   "name": "vibe-protocol",
   "version": "3.0.0-Alpha1",
   "homepage": "http://vibe-project.github.io/projects/vibe-protocol/",
-  "description": "A reference implementation and test suite of vibe protocol",
+  "description": "A reference implementation and test suite for Vibe protocol",
   "author": {
     "name": "Donghwan Kim",
     "email": "flowersinthesand@gmail.com"
@@ -19,11 +19,11 @@
   "dependencies": {
     "ws": "0.4.32",
     "node-uuid": "1.4.1",
-    "eventsource": "0.1.2"
+    "eventsource": "0.1.3"
   },
   "devDependencies": {
-    "grunt": "^0.4.5",
-    "mocha": "^1.21.4",
-    "chai": "^1.9.1"
+    "grunt": "0.4.5",
+    "mocha": "1.21.4",
+    "chai": "1.9.2"
   }
 }
