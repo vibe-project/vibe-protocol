@@ -4,6 +4,7 @@ var url = require("url");
 var http = require("http");
 var querystring = require("querystring");
 var vibe = require("../lib/index");
+var sid = process.env.VIBE_TEST_SESSION_ID;
 
 http.globalAgent.maxSockets = Infinity;
 
@@ -52,7 +53,6 @@ describe("client", function() {
     
     // To tell client to connect this server 
     function order(params) {
-        var sid = process.env.VIBE_TEST_SESSION_ID;
         if (sid) {
             params.sid = sid;
         }
