@@ -2,7 +2,6 @@ var parseArgs = require("minimist");
 var should = require("chai").should();
 var http = require("http");
 var vibe = require("../lib/index");
-var client = vibe.client();
 
 http.globalAgent.maxSockets = Infinity;
 
@@ -27,41 +26,11 @@ var factory = {
 };
 
 describe("server", function() {
-    // Endpoint of the vibe server to be tested
-    var host = "http://localhost:8000";
-    var uri = host + "/vibe";
-
     this.timeout(20 * 1000);
     
-    before(function() {
-        var self = this;
-        // A container for active socket to close them after each test
-        var sockets = [];
-        // Override client.open to capture socket
-        self.open = client.open;
-        client.open = function open() {
-            return self.open.apply(this, arguments)
-            .on("open", function() {
-                sockets.push(this);
-            })
-            .on("close", function() {
-                // Remove the closed one
-                sockets.splice(sockets.indexOf(this), 1);
-            });
-        };
-        
-        self.sockets = sockets;
-    });
-    afterEach(function() {
-        // Disconnect sockets used in test
-        this.sockets.forEach(function(socket) {
-            socket.close();
-        });
-    });
-    after(function() {
-        // Restore the original method
-        client.open = this.open;
-    });
+    var host = "http://localhost:8000";
+    var uri = host + "/vibe";
+    var client = vibe.client();
     
     factory.create("should accept a new socket", function(done) {
         client.open(uri, {transport: this.args.transport})

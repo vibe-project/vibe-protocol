@@ -4,7 +4,6 @@ var url = require("url");
 var http = require("http");
 var querystring = require("querystring");
 var vibe = require("../lib/index");
-var sid = process.env.VIBE_TEST_SESSION_ID;
 
 http.globalAgent.maxSockets = Infinity;
 
@@ -31,95 +30,67 @@ var factory = {
 describe("client", function() {
     this.timeout(20 * 1000);
     
-    before(function(done) {
-        var self = this;
-        // A container for active socket to close them after each test
-        var sockets = [];
-        var server = vibe.server().on("socket", function(socket) {
-            sockets.push(socket);
-            // Remove the closed one
-            socket.on("close", function() {
-                sockets.splice(sockets.indexOf(socket), 1);
-            });
-        });
+    // Current Vibe server to test a client implementation
+    var server;
+    // To be destroyed
+    var netSockets = [];
+    // An HTTP server to install Vibe server
+    var httpServer = http.createServer();
+    httpServer.on("connection", function(socket) {
+        netSockets.push(socket);
+    })
+    .on("request", function(req, res) {
+        if (url.parse(req.url).pathname === "/vibe") {
+            server.handleRequest(req, res);
+        }
+    })
+    .on("upgrade", function(req, sock, head) {
+        if (url.parse(req.url).pathname === "/vibe") {
+            server.handleUpgrade(req, sock, head);
+        }
+    });
+    
+    // To tell client to connect this server 
+    function order(params) {
+        var sid = process.env.VIBE_TEST_SESSION_ID;
+        if (sid) {
+            params.sid = sid;
+        }
         
-        // A container for active net socket to destroy them after the whole suite
-        var netSockets = [];
-        var httpServer = http.createServer().on("connection", function(socket) {
-            netSockets.push(socket);
-            // Remove the closed one
-            socket.on("close", function () {
-                netSockets.splice(netSockets.indexOf(socket), 1);
-            });
-        });
-        // Install a vibe server on a web server
-        httpServer.on("request", function(req, res) {
-            if (url.parse(req.url).pathname === "/vibe") {
-                server.handleRequest(req, res);
-            }
-        })
-        .on("upgrade", function(req, sock, head) {
-            if (url.parse(req.url).pathname === "/vibe") {
-                server.handleUpgrade(req, sock, head);
-            }
-        });
-        // Start the web server
+        params.uri = "http://localhost:" + httpServer.address().port + "/vibe";
+        params.heartbeat = params.heartbeat || false;
+        params._heartbeat = params._heartbeat || false;
+        http.get("http://localhost:9000/open?" + querystring.stringify(params));
+    }
+    
+    before(function(done) {
         httpServer.listen(0, function() {
-            var port = this.address().port;
-            // This method is to tell client to connect this server 
-            self.order = function(params) {
-                if (sid) {
-                    params.sid = sid;
-                }
-                params.uri = "http://localhost:" + port + "/vibe";
-                params.heartbeat = params.heartbeat || false;
-                params._heartbeat = params._heartbeat || false;
-                http.get("http://localhost:9000/open?" + querystring.stringify(params));
-            };
             done();
         });
-        
-        self.sockets = sockets;
-        self.server = server;
-        self.netSockets = netSockets;
-        self.httpServer = httpServer;
-    });
-    beforeEach(function() {
-        // To restore the original stack
-        this.socketListeners = this.server.listeners("socket");
-    });
-    afterEach(function() {
-        // Disconnect sockets used in test
-        this.sockets.forEach(function(socket) {
-            socket.close();
-        });
-        // Remove the listener added by the test and restore the original stack
-        this.server.removeAllListeners("socket");
-        this.socketListeners.forEach(function(listener) {
-            this.server.on("socket", listener);
-        }.bind(this));
     });
     after(function(done) {
         // To shutdown the web server immediately
-        setTimeout(function() {
-            this.netSockets.forEach(function(socket) {
-                socket.destroy();
-            });
-            this.httpServer.close(function() {
-                done();
-            });
-        }.bind(this), 10);
+        netSockets.forEach(function(socket) {
+            socket.destroy();
+        });
+        httpServer.close(function() {
+            done();
+        });
+    });
+    beforeEach(function() {
+        // Replace existing server with new one
+        server = vibe.server();
     });
 
     factory.create("should open a new socket", function(done) {
-        this.order({transport: this.args.transport});
-        this.server.on("socket", function() {
+        order({transport: this.args.transport});
+        server.on("socket", function() {
             done();
         });
     });
     factory.create("should close the socket", function(done) {
-        this.order({transport: this.args.transport});
-        this.server.on("socket", function(socket) {
+        order({transport: this.args.transport});
+        server.on("socket", function(socket) {
             socket.on("close", function() {
                 done();
             })
@@ -131,8 +102,8 @@ describe("client", function() {
     factory.create("should detect the server's disconnection", function(done) {
         var test = this.test;
         // A client who can't detect disconnection will notice it by heartbeat
-        this.order({transport: this.args.transport, heartbeat: 10000, _heartbeat: 5000});
-        this.server.on("socket", function(socket) {
+        order({transport: this.args.transport, heartbeat: 10000, _heartbeat: 5000});
+        server.on("socket", function(socket) {
             socket.on("close", function check() {
                 // This request checks if this socket in client is alive or not.
                 http.get("http://localhost:9000/alive?id=" + socket.id, function(res) {
@@ -156,8 +127,8 @@ describe("client", function() {
         });
     });
     factory.create("should exchange an event", function(done) {
-        this.order({transport: this.args.transport});
-        this.server.on("socket", function(socket) {
+        order({transport: this.args.transport});
+        server.on("socket", function(socket) {
             socket.on("echo", function(data) {
                 data.should.be.equal("data");
                 done();
@@ -166,8 +137,8 @@ describe("client", function() {
         });
     });
     factory.create("should exchange an event containing of multi-byte characters", function(done) {
-        this.order({transport: this.args.transport});
-        this.server.on("socket", function(socket) {
+        order({transport: this.args.transport});
+        server.on("socket", function(socket) {
             socket.on("echo", function(data) {
                 data.should.be.equal("라면");
                 done();
@@ -177,8 +148,8 @@ describe("client", function() {
     });
     factory.create("should exchange an event of 2KB", function(done) {
         var text2KB = Array(2048).join("K");
-        this.order({transport: this.args.transport});
-        this.server.on("socket", function(socket) {
+        order({transport: this.args.transport});
+        server.on("socket", function(socket) {
             socket.on("echo", function(data) {
                 data.should.be.equal(text2KB);
                 done();
@@ -188,8 +159,8 @@ describe("client", function() {
     });
     factory.create("should not lose any event in an exchange of one hundred of event", function(done) {
         var timer, sent = [], received = [];
-        this.order({transport: this.args.transport});
-        this.server.on("socket", function(socket) {
+        order({transport: this.args.transport});
+        server.on("socket", function(socket) {
             socket.on("echo", function(i) {
                 received.push(i);
                 received.sort();
@@ -211,8 +182,8 @@ describe("client", function() {
         });
     });
     factory.create("should support heartbeat", function(done) { 
-        this.order({transport: this.args.transport, heartbeat: 2500, _heartbeat: 2400});
-        this.server.on("socket", function(socket) {
+        order({transport: this.args.transport, heartbeat: 2500, _heartbeat: 2400});
+        server.on("socket", function(socket) {
             socket.once("heartbeat", function() {
                 this.once("heartbeat", function() {
                     this.once("heartbeat", function() {
@@ -223,8 +194,8 @@ describe("client", function() {
         });
     });
     factory.create("should close the socket if heartbeat fails", function(done) {
-        this.order({transport: this.args.transport, heartbeat: 2500, _heartbeat: 2400});
-        this.server.on("socket", function(socket) {
+        order({transport: this.args.transport, heartbeat: 2500, _heartbeat: 2400});
+        server.on("socket", function(socket) {
             socket.send = function() {
                 return this;
             };
@@ -236,8 +207,8 @@ describe("client", function() {
     if (factory.args.extension.indexOf("reply") !== -1) {
         describe("reply", function() {
             factory.create("should execute the resolve callback when receiving event", function(done) {
-                this.order({transport: this.args.transport});
-                this.server.on("socket", function(socket) {
+                order({transport: this.args.transport});
+                server.on("socket", function(socket) {
                     socket.send("/reply/inbound", {type: "resolved", data: Math.PI}, function(value) {
                         value.should.be.equal(Math.PI);
                         done();
@@ -247,8 +218,8 @@ describe("client", function() {
                 });
             });
             factory.create("should execute the reject callback when receiving event", function(done) {
-                this.order({transport: this.args.transport});
-                this.server.on("socket", function(socket) {
+                order({transport: this.args.transport});
+                server.on("socket", function(socket) {
                     socket.send("/reply/inbound", {type: "rejected", data: Math.PI}, function() {
                         true.should.be.false;
                     }, function(value) {
@@ -258,8 +229,8 @@ describe("client", function() {
                 });
             });
             factory.create("should execute the resolve callback when sending event", function(done) {
-                this.order({transport: this.args.transport});
-                this.server.on("socket", function(socket) {
+                order({transport: this.args.transport});
+                server.on("socket", function(socket) {
                     socket.on("test", function(data, reply) {
                         reply.resolve(data);
                         this.on("done", function(value) {
@@ -271,8 +242,8 @@ describe("client", function() {
                 });
             });
             factory.create("should execute the reject callback when sending event", function(done) {
-                this.order({transport: this.args.transport});
-                this.server.on("socket", function(socket) {
+                order({transport: this.args.transport});
+                server.on("socket", function(socket) {
                     socket.on("test", function(data, reply) {
                         reply.reject(data);
                         this.on("done", function(value) {
