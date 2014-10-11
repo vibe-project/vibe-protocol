@@ -1,4 +1,4 @@
-// A reusable test suite to verify the client implementation
+var parseArgs = require("minimist");
 var should = require("chai").should();
 var url = require("url");
 var http = require("http");
@@ -7,6 +7,26 @@ var vibe = require("../lib/index");
 var sid = process.env.VIBE_TEST_SESSION_ID;
 
 http.globalAgent.maxSockets = Infinity;
+
+// A factory to create a group of test
+var factory = {
+    args: parseArgs(process.argv, {
+        default: {
+            vibe: {transports: "", extension: ""}
+        }
+    }).vibe,
+    create: function(title, fn) {
+        describe(title, function() {
+            factory.args.transports.split(",").forEach(function(transport) {
+                var args = {transport: transport};
+                it(transport, function(done) {
+                    this.args = args;
+                    fn.apply(this, arguments);
+                });
+            });
+        });
+    }
+};
 
 describe("client", function() {
     this.timeout(20 * 1000);
@@ -90,200 +110,179 @@ describe("client", function() {
             });
         }.bind(this), 10);
     });
-    
-    describe("transport", function() {
-        "ws sse streamxhr streamxdr streamiframe longpollajax longpollxdr longpolljsonp".split(" ").forEach(function(transport) {
-            // Per transport
-            describe(transport, function() {
-                // Protocol part
-                describe("protocol", function() {
-                    describe("open", function() {
-                        it("should open a new socket", function(done) {
-                            this.order({transport: transport});
-                            this.server.on("socket", function() {
-                                done();
-                            });
-                        });
-                    });
-                    describe("close", function() {
-                        it("should close the socket", function(done) {
-                            this.order({transport: transport});
-                            this.server.on("socket", function(socket) {
-                                socket.on("close", function() {
-                                    done();
-                                })
-                                // Though the client couldn't fire open event
-                                // now, it will receive this event some time
-                                // later.
-                                .send("abort");
-                            });
-                        });
-                        it("should detect the server's disconnection", function(done) {
-                            var test = this.test;
-                            // A client who can't detect disconnection will notice it by heartbeat
-                            this.order({transport: transport, heartbeat: 10000, _heartbeat: 5000});
-                            this.server.on("socket", function(socket) {
-                                socket.on("close", function check() {
-                                    // This request checks if this socket in
-                                    // client is alive or not.
-                                    http.get("http://localhost:9000/alive?id=" + socket.id, function(res) {
-                                        var body = "";
-                                        res.on("data", function(chunk) {
-                                            body += chunk;
-                                        })
-                                        .on("end", function() {
-                                            // The 'false' body means the client has
-                                            // no such socket that is a successful
-                                            // case. If not, request again until the
-                                            // client notices it.
-                                            if (body === "false") {
-                                                done();
-                                            } else if (test.state !== "passed" && !test.timedOut) {
-                                                setTimeout(check, 1000);
-                                            }
-                                        });
-                                    });
-                                })
-                                .close();
-                            });
-                        });
-                    });
-                    describe("exchange", function() {
-                        it("should exchange an event", function(done) {
-                            this.order({transport: transport});
-                            this.server.on("socket", function(socket) {
-                                socket.on("echo", function(data) {
-                                    data.should.be.equal("data");
-                                    done();
-                                })
-                                .send("echo", "data");
-                            });
-                        });
-                        it("should exchange an event containing of multi-byte characters", function(done) {
-                            this.order({transport: transport});
-                            this.server.on("socket", function(socket) {
-                                socket.on("echo", function(data) {
-                                    data.should.be.equal("라면");
-                                    done();
-                                })
-                                .send("echo", "라면");
-                            });
-                        });
-                        it("should exchange an event of 2KB", function(done) {
-                            var text2KB = Array(2048).join("K");
-                            this.order({transport: transport});
-                            this.server.on("socket", function(socket) {
-                                socket.on("echo", function(data) {
-                                    data.should.be.equal(text2KB);
-                                    done();
-                                })
-                                .send("echo", text2KB);
-                            });
-                        });
-                        it("should not lose any event in an exchange of one hundred of event", function(done) {
-                            var timer, sent = [], received = [];
-                            this.order({transport: transport});
-                            this.server.on("socket", function(socket) {
-                                socket.on("echo", function(i) {
-                                    received.push(i);
-                                    received.sort();
-                                    clearTimeout(timer);
-                                    timer = setTimeout(function() {
-                                        received.should.be.deep.equal(sent);
-                                        done();
-                                    }, 1500);
-                                });
-                                for (var i = 0; i < 100; i++) {
-                                    (function(i) {
-                                        setTimeout(function() {
-                                            sent.push(i);
-                                            sent.sort();
-                                            socket.send("echo", i);
-                                        }, 10);
-                                    })(i);
-                                }
-                            });
-                        });
-                    });
-                    describe("heartbeat", function() {
-                        it("should support heartbeat", function(done) { 
-                            this.order({transport: transport, heartbeat: 2500, _heartbeat: 2400});
-                            this.server.on("socket", function(socket) {
-                                socket.once("heartbeat", function() {
-                                    this.once("heartbeat", function() {
-                                        this.once("heartbeat", function() {
-                                            done();
-                                        }); 
-                                    });
-                                });
-                            });
-                        });
-                        it("should close the socket if heartbeat fails", function(done) {
-                            this.order({transport: transport, heartbeat: 2500, _heartbeat: 2400});
-                            this.server.on("socket", function(socket) {
-                                socket.send = function() { return this; };
-                                socket.on("close", function() {
-                                    done();
-                                });
-                            });
-                        });
+
+    factory.create("should open a new socket", function(done) {
+        this.order({transport: this.args.transport});
+        this.server.on("socket", function() {
+            done();
+        });
+    });
+    factory.create("should close the socket", function(done) {
+        this.order({transport: this.args.transport});
+        this.server.on("socket", function(socket) {
+            socket.on("close", function() {
+                done();
+            })
+            // Though the client couldn't fire open event now, it will receive
+            // this event some time later.
+            .send("abort");
+        });
+    });
+    factory.create("should detect the server's disconnection", function(done) {
+        var test = this.test;
+        // A client who can't detect disconnection will notice it by heartbeat
+        this.order({transport: this.args.transport, heartbeat: 10000, _heartbeat: 5000});
+        this.server.on("socket", function(socket) {
+            socket.on("close", function check() {
+                // This request checks if this socket in client is alive or not.
+                http.get("http://localhost:9000/alive?id=" + socket.id, function(res) {
+                    var body = "";
+                    res.on("data", function(chunk) {
+                        body += chunk;
+                    })
+                    .on("end", function() {
+                        // The 'false' body means the client has no such socket
+                        // that is a successful case. If not, request again
+                        // until the client notices it.
+                        if (body === "false") {
+                            done();
+                        } else if (test.state !== "passed" && !test.timedOut) {
+                            setTimeout(check, 1000);
+                        }
                     });
                 });
-                // Extension part
-                describe("extension", function() {
-                    // Reply
-                    describe("reply", function() {
-                        it("should execute the resolve callback when receiving event", function(done) {
-                            this.order({transport: transport});
-                            this.server.on("socket", function(socket) {
-                                socket.send("/reply/inbound", {type: "resolved", data: Math.PI}, function(value) {
-                                    value.should.be.equal(Math.PI);
-                                    done();
-                                }, function() {
-                                    true.should.be.false;
-                                });
-                            });
-                        });
-                        it("should execute the reject callback when receiving event", function(done) {
-                            this.order({transport: transport});
-                            this.server.on("socket", function(socket) {
-                                socket.send("/reply/inbound", {type: "rejected", data: Math.PI}, function() {
-                                    true.should.be.false;
-                                }, function(value) {
-                                    value.should.be.equal(Math.PI);
-                                    done();
-                                });
-                            });
-                        });
-                        it("should execute the resolve callback when sending event", function(done) {
-                            this.order({transport: transport});
-                            this.server.on("socket", function(socket) {
-                                socket.on("test", function(data, reply) {
-                                    reply.resolve(data);
-                                    this.on("done", function(value) {
-                                        value.should.be.equal(Math.E);
-                                        done();
-                                    });
-                                })
-                                .send("/reply/outbound", {type: "resolved", data: Math.E});
-                            });
-                        });
-                        it("should execute the reject callback when sending event", function(done) {
-                            this.order({transport: transport});
-                            this.server.on("socket", function(socket) {
-                                socket.on("test", function(data, reply) {
-                                    reply.reject(data);
-                                    this.on("done", function(value) {
-                                        value.should.be.equal(Math.E);
-                                        done();
-                                    });
-                                })
-                                .send("/reply/outbound", {type: "rejected", data: Math.E});
-                            });
-                        });
-                    });
+            })
+            .close();
+        });
+    });
+    factory.create("should exchange an event", function(done) {
+        this.order({transport: this.args.transport});
+        this.server.on("socket", function(socket) {
+            socket.on("echo", function(data) {
+                data.should.be.equal("data");
+                done();
+            })
+            .send("echo", "data");
+        });
+    });
+    factory.create("should exchange an event containing of multi-byte characters", function(done) {
+        this.order({transport: this.args.transport});
+        this.server.on("socket", function(socket) {
+            socket.on("echo", function(data) {
+                data.should.be.equal("라면");
+                done();
+            })
+            .send("echo", "라면");
+        });
+    });
+    factory.create("should exchange an event of 2KB", function(done) {
+        var text2KB = Array(2048).join("K");
+        this.order({transport: this.args.transport});
+        this.server.on("socket", function(socket) {
+            socket.on("echo", function(data) {
+                data.should.be.equal(text2KB);
+                done();
+            })
+            .send("echo", text2KB);
+        });
+    });
+    factory.create("should not lose any event in an exchange of one hundred of event", function(done) {
+        var timer, sent = [], received = [];
+        this.order({transport: this.args.transport});
+        this.server.on("socket", function(socket) {
+            socket.on("echo", function(i) {
+                received.push(i);
+                received.sort();
+                clearTimeout(timer);
+                timer = setTimeout(function() {
+                    received.should.be.deep.equal(sent);
+                    done();
+                }, 1500);
+            });
+            for (var i = 0; i < 100; i++) {
+                (function(i) {
+                    setTimeout(function() {
+                        sent.push(i);
+                        sent.sort();
+                        socket.send("echo", i);
+                    }, 10);
+                })(i);
+            }
+        });
+    });
+    factory.create("should support heartbeat", function(done) { 
+        this.order({transport: this.args.transport, heartbeat: 2500, _heartbeat: 2400});
+        this.server.on("socket", function(socket) {
+            socket.once("heartbeat", function() {
+                this.once("heartbeat", function() {
+                    this.once("heartbeat", function() {
+                        done();
+                    }); 
                 });
             });
         });
     });
+    factory.create("should close the socket if heartbeat fails", function(done) {
+        this.order({transport: this.args.transport, heartbeat: 2500, _heartbeat: 2400});
+        this.server.on("socket", function(socket) {
+            socket.send = function() {
+                return this;
+            };
+            socket.on("close", function() {
+                done();
+            });
+        });
+    });
+    if (factory.args.extension.indexOf("reply") !== -1) {
+        describe("reply", function() {
+            factory.create("should execute the resolve callback when receiving event", function(done) {
+                this.order({transport: this.args.transport});
+                this.server.on("socket", function(socket) {
+                    socket.send("/reply/inbound", {type: "resolved", data: Math.PI}, function(value) {
+                        value.should.be.equal(Math.PI);
+                        done();
+                    }, function() {
+                        true.should.be.false;
+                    });
+                });
+            });
+            factory.create("should execute the reject callback when receiving event", function(done) {
+                this.order({transport: this.args.transport});
+                this.server.on("socket", function(socket) {
+                    socket.send("/reply/inbound", {type: "rejected", data: Math.PI}, function() {
+                        true.should.be.false;
+                    }, function(value) {
+                        value.should.be.equal(Math.PI);
+                        done();
+                    });
+                });
+            });
+            factory.create("should execute the resolve callback when sending event", function(done) {
+                this.order({transport: this.args.transport});
+                this.server.on("socket", function(socket) {
+                    socket.on("test", function(data, reply) {
+                        reply.resolve(data);
+                        this.on("done", function(value) {
+                            value.should.be.equal(Math.E);
+                            done();
+                        });
+                    })
+                    .send("/reply/outbound", {type: "resolved", data: Math.E});
+                });
+            });
+            factory.create("should execute the reject callback when sending event", function(done) {
+                this.order({transport: this.args.transport});
+                this.server.on("socket", function(socket) {
+                    socket.on("test", function(data, reply) {
+                        reply.reject(data);
+                        this.on("done", function(value) {
+                            value.should.be.equal(Math.E);
+                            done();
+                        });
+                    })
+                    .send("/reply/outbound", {type: "rejected", data: Math.E});
+                });
+            });
+        });
+    }
 });
