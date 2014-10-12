@@ -1,5 +1,6 @@
 var parseArgs = require("minimist");
 var should = require("chai").should();
+var url = require("url");
 var http = require("http");
 var querystring = require("querystring");
 var vibe = require("../lib/index");
@@ -48,8 +49,11 @@ describe("server", function() {
             delete options._heartbeat;
         }
         http.get(host + "/setup?" + querystring.stringify(params));
-        return _open.apply(this, arguments);
-        // TODO check if a server obeyed protocol options.
+        return _open.apply(this, arguments)
+        .on("open", function() {
+            var query = url.parse(this.uri, true).query;
+            query.transport.should.be.equal(options.transport);
+        });
     };
     
     factory.create("should accept a new socket", function(done) {

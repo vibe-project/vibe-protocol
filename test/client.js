@@ -63,8 +63,10 @@ describe("client", function() {
         http.get(host + "/open?" + querystring.stringify(params));
         var ret = _server.apply(this, arguments);
         server = ret;
-        return ret;
-        // TODO check if a client obeyed protocol options.
+        return ret.on("socket", function(socket) {
+            var query = url.parse(socket.uri, true).query;
+            query.transport.should.be.equal(options.transports[0]);
+        });
     };
     
     before(function(done) {
@@ -83,13 +85,13 @@ describe("client", function() {
     });
 
     factory.create("should open a new socket", function(done) {
-        vibe.server({transport: this.args.transport})
+        vibe.server({transports: [this.args.transport]})
         .on("socket", function(socket) {
             done();
         });
     });
     factory.create("should close the socket", function(done) {
-        vibe.server({transport: this.args.transport})
+        vibe.server({transports: [this.args.transport]})
         .on("socket", function(socket) {
             socket.on("close", function() {
                 done();
@@ -102,7 +104,7 @@ describe("client", function() {
     factory.create("should detect the server's disconnection", function(done) {
         var test = this.test;
         // A client who can't detect disconnection will notice it by heartbeat
-        vibe.server({transport: this.args.transport, heartbeat: 10000, _heartbeat: 5000})
+        vibe.server({transports: [this.args.transport], heartbeat: 10000, _heartbeat: 5000})
         .on("socket", function(socket) {
             socket.on("close", function check() {
                 // This request checks if this socket in client is alive or not.
@@ -127,7 +129,7 @@ describe("client", function() {
         });
     });
     factory.create("should exchange an event", function(done) {
-        vibe.server({transport: this.args.transport})
+        vibe.server({transports: [this.args.transport]})
         .on("socket", function(socket) {
             socket.on("echo", function(data) {
                 data.should.be.equal("data");
@@ -137,7 +139,7 @@ describe("client", function() {
         });
     });
     factory.create("should exchange an event containing of multi-byte characters", function(done) {
-        vibe.server({transport: this.args.transport})
+        vibe.server({transports: [this.args.transport]})
         .on("socket", function(socket) {
             socket.on("echo", function(data) {
                 data.should.be.equal("라면");
@@ -148,7 +150,7 @@ describe("client", function() {
     });
     factory.create("should exchange an event of 2KB", function(done) {
         var text2KB = Array(2048).join("K");
-        vibe.server({transport: this.args.transport})
+        vibe.server({transports: [this.args.transport]})
         .on("socket", function(socket) {
             socket.on("echo", function(data) {
                 data.should.be.equal(text2KB);
@@ -159,7 +161,7 @@ describe("client", function() {
     });
     factory.create("should not lose any event in an exchange of one hundred of event", function(done) {
         var timer, sent = [], received = [];
-        vibe.server({transport: this.args.transport})
+        vibe.server({transports: [this.args.transport]})
         .on("socket", function(socket) {
             socket.on("echo", function(i) {
                 received.push(i);
@@ -182,7 +184,7 @@ describe("client", function() {
         });
     });
     factory.create("should support heartbeat", function(done) { 
-        vibe.server({transport: this.args.transport, heartbeat: 2500, _heartbeat: 2400})
+        vibe.server({transports: [this.args.transport], heartbeat: 2500, _heartbeat: 2400})
         .on("socket", function(socket) {
             socket.once("heartbeat", function() {
                 this.once("heartbeat", function() {
@@ -194,7 +196,7 @@ describe("client", function() {
         });
     });
     factory.create("should close the socket if heartbeat fails", function(done) {
-        vibe.server({transport: this.args.transport, heartbeat: 2500, _heartbeat: 2400})
+        vibe.server({transports: [this.args.transport], heartbeat: 2500, _heartbeat: 2400})
         .on("socket", function(socket) {
             socket.send = function() {
                 return this;
@@ -207,7 +209,7 @@ describe("client", function() {
     if (factory.args.extension.indexOf("reply") !== -1) {
         describe("reply", function() {
             factory.create("should execute the resolve callback when receiving event", function(done) {
-                vibe.server({transport: this.args.transport})
+                vibe.server({transports: [this.args.transport]})
                 .on("socket", function(socket) {
                     socket.send("/reply/inbound", {type: "resolved", data: Math.PI}, function(value) {
                         value.should.be.equal(Math.PI);
@@ -218,7 +220,7 @@ describe("client", function() {
                 });
             });
             factory.create("should execute the reject callback when receiving event", function(done) {
-                vibe.server({transport: this.args.transport})
+                vibe.server({transports: [this.args.transport]})
                 .on("socket", function(socket) {
                     socket.send("/reply/inbound", {type: "rejected", data: Math.PI}, function() {
                         true.should.be.false;
@@ -229,7 +231,7 @@ describe("client", function() {
                 });
             });
             factory.create("should execute the resolve callback when sending event", function(done) {
-                vibe.server({transport: this.args.transport})
+                vibe.server({transports: [this.args.transport]})
                 .on("socket", function(socket) {
                     socket.on("test", function(data, reply) {
                         reply.resolve(data);
@@ -242,7 +244,7 @@ describe("client", function() {
                 });
             });
             factory.create("should execute the reject callback when sending event", function(done) {
-                vibe.server({transport: this.args.transport})
+                vibe.server({transports: [this.args.transport]})
                 .on("socket", function(socket) {
                     socket.on("test", function(data, reply) {
                         reply.reject(data);
