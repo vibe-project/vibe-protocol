@@ -1,6 +1,7 @@
 var parseArgs = require("minimist");
 var should = require("chai").should();
 var http = require("http");
+var querystring = require("querystring");
 var vibe = require("../lib/index");
 
 http.globalAgent.maxSockets = Infinity;
@@ -31,6 +32,25 @@ describe("server", function() {
     var host = "http://localhost:8000";
     var uri = host + "/vibe";
     var client = vibe.client();
+    
+    // Override to tell server testee to set up a new server and exclude
+    // protocol related options
+    var _open = client.open;
+    client.open = function(uri, options) {
+        var params = {transports: [options.transport].join(",")};
+        delete options.transport;
+        if (options.heartbeat) {
+            params.heartbeat = options.heartbeat;
+            delete options.heartbeat;
+        }
+        if (options._heartbeat) {
+            params._heartbeat = options._heartbeat;
+            delete options._heartbeat;
+        }
+        http.get(host + "/setup?" + querystring.stringify(params));
+        return _open.apply(this, arguments);
+        // TODO check if a server obeyed protocol options.
+    };
     
     factory.create("should accept a new socket", function(done) {
         client.open(uri, {transport: this.args.transport})

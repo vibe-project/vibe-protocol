@@ -1,20 +1,19 @@
 var vibe = require("../../lib/index");
-var client = vibe.client();
 var url = require("url");
 var http = require("http");
 
 http.globalAgent.maxSockets = Infinity;
 
+var client = vibe.client();
 var sockets = {};
 http.createServer(function(req, res) {
     var urlObj = url.parse(req.url, true);
     var query = urlObj.query;
     switch (urlObj.pathname) {
     case "/open":
-        var socket = client.open(query.uri, {transport: query.transport, heartbeat: +query.heartbeat || false, _heartbeat: +query._heartbeat || false});
-        // Test protocol
+        var socket = client.open(query.uri);
         socket.on("open", function() {
-            sockets[this.id] = this;
+            sockets[this.id] = true;
         })
         .on("close", function() {
             delete sockets[this.id];
@@ -25,8 +24,6 @@ http.createServer(function(req, res) {
         .on("echo", function(data) {
             this.send("echo", data);
         });
-        
-        // Test extension
         // reply
         socket.on("/reply/inbound", function(data, reply) {
             switch (data.type) {
