@@ -11,7 +11,8 @@ http.globalAgent.maxSockets = Infinity;
 var factory = {
     args: parseArgs(process.argv, {
         default: {
-            vibe: {transports: "", extension: ""}
+            "vibe.transports": "",
+            "vibe.extension": "",
         }
     }).vibe,
     create: function(title, fn) {
