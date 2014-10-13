@@ -4,7 +4,6 @@ var url = require("url");
 var http = require("http");
 var querystring = require("querystring");
 var vibe = require("../lib/index");
-var sid = process.env.VIBE_TEST_SESSION_ID;
 
 http.globalAgent.maxSockets = Infinity;
 
@@ -57,8 +56,9 @@ describe("client", function() {
     var _server = vibe.server;
     vibe.server = function(options) {
         var params = {uri: "http://localhost:" + httpServer.address().port + "/vibe"};
-        if (sid) {
-            params.sid = sid;
+        // To test multiple clients concurrently
+        if (factory.args.session) {
+            params.session = factory.args.session;
         }
         http.get(host + "/open?" + querystring.stringify(params));
         var ret = _server.apply(this, arguments);
