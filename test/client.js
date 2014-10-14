@@ -44,6 +44,9 @@ describe("client", function() {
     var httpServer = http.createServer();
     httpServer.on("connection", function(socket) {
         netSockets.push(socket);
+        socket.on("close", function () {
+            netSockets.splice(netSockets.indexOf(socket), 1);
+        });
     })
     .on("request", function(req, res) {
         if (url.parse(req.url).pathname === "/vibe") {
@@ -55,24 +58,6 @@ describe("client", function() {
             server.handleUpgrade(req, sock, head);
         }
     });
-    
-    // Override to tell client testee to connect to this server and replace
-    // server reference
-    var _server = vibe.server;
-    vibe.server = function(options) {
-        var params = {uri: "http://localhost:" + httpServer.address().port + "/vibe"};
-        // To test multiple clients concurrently
-        if (factory.args.session) {
-            params.session = factory.args.session;
-        }
-        http.get(host + "/open?" + querystring.stringify(params));
-        var ret = _server.apply(this, arguments);
-        server = ret;
-        return ret.on("socket", function(socket) {
-            var query = url.parse(socket.uri, true).query;
-            query.transport.should.be.equal(options.transports[0]);
-        });
-    };
     
     before(function(done) {
         httpServer.listen(0, function() {
@@ -87,6 +72,40 @@ describe("client", function() {
         httpServer.close(function() {
             done();
         });
+    });
+    beforeEach(function() {
+        // Override to tell client testee to connect to this server and replace
+        // server reference
+        var self = this;
+        self.sockets = [];
+        self._server = vibe.server;
+        vibe.server = function(options) {
+            var params = {uri: "http://localhost:" + httpServer.address().port + "/vibe"};
+            // To test multiple clients concurrently
+            if (factory.args.session) {
+                params.session = factory.args.session;
+            }
+            http.get(host + "/open?" + querystring.stringify(params));
+            server = self._server.apply(this, arguments)
+            .on("socket", function(socket) {
+                self.sockets.push(socket);
+                socket.on("close", function() {
+                    self.sockets.splice(self.sockets.indexOf(socket), 1);
+                });
+                var query = url.parse(socket.uri, true).query;
+                query.transport.should.be.equal(options.transports[0]);
+            });
+            return server;
+        };
+    });
+    afterEach(function() {
+        var self = this;
+        // To release stress of browsers, clean sockets
+        self.sockets.forEach(function(socket) {
+            socket.close();
+        });
+        // Restore reference
+        vibe.server = self._server;
     });
     
     factory.create("should open a new socket", function(done) {
