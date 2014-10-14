@@ -3,7 +3,11 @@ var should = require("chai").should();
 var url = require("url");
 var http = require("http");
 var querystring = require("querystring");
-var vibe = require("../lib/index");
+var _vibe = require("../lib/index");
+var vibe = {};
+for (var i in _vibe) {
+    vibe[i] = _vibe[i];
+}
 
 http.globalAgent.maxSockets = Infinity;
 
@@ -34,34 +38,28 @@ describe("server", function() {
     var host = "http://localhost:8000";
     var uri = host + "/vibe";
     var client = vibe.client();
-    
-    beforeEach(function() {
-        // Override to tell server testee to set up a new server and exclude
-        // protocol related options
-        var self = this;
-        self._open = client.open;
-        client.open = function(uri, options) {
-            var params = {transports: [options.transport].join(",")};
-            delete options.transport;
-            if (options.heartbeat) {
-                params.heartbeat = options.heartbeat;
-                delete options.heartbeat;
-            }
-            if (options._heartbeat) {
-                params._heartbeat = options._heartbeat;
-                delete options._heartbeat;
-            }
-            http.get(host + "/setup?" + querystring.stringify(params));
-            return self._open.apply(this, arguments)
-            .on("open", function() {
-                var query = url.parse(this.uri, true).query;
-                query.transport.should.be.equal(options.transport);
-            });
-        };
-    });
-    afterEach(function() {
-        client.open = this._open;
-    });
+
+    // Override to tell server testee to set up a new server and exclude
+    // protocol related options
+    var _open = client.open;
+    client.open = function(uri, options) {
+        var params = {transports: [options.transport].join(",")};
+        delete options.transport;
+        if (options.heartbeat) {
+            params.heartbeat = options.heartbeat;
+            delete options.heartbeat;
+        }
+        if (options._heartbeat) {
+            params._heartbeat = options._heartbeat;
+            delete options._heartbeat;
+        }
+        http.get(host + "/setup?" + querystring.stringify(params));
+        return _open.apply(this, arguments)
+        .on("open", function() {
+            var query = url.parse(this.uri, true).query;
+            query.transport.should.be.equal(options.transport);
+        });
+    };
     
     factory.create("should accept a new socket", function(done) {
         client.open(uri, {transport: this.args.transport})

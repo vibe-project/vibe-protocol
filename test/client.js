@@ -3,7 +3,11 @@ var should = require("chai").should();
 var url = require("url");
 var http = require("http");
 var querystring = require("querystring");
-var vibe = require("../lib/index");
+var _vibe = require("../lib/index");
+var vibe = {};
+for (var i in _vibe) {
+    vibe[i] = _vibe[i];
+}
 
 http.globalAgent.maxSockets = Infinity;
 
@@ -52,6 +56,24 @@ describe("client", function() {
         }
     });
     
+    // Override to tell client testee to connect to this server and replace
+    // server reference
+    var _server = vibe.server;
+    vibe.server = function(options) {
+        var params = {uri: "http://localhost:" + httpServer.address().port + "/vibe"};
+        // To test multiple clients concurrently
+        if (factory.args.session) {
+            params.session = factory.args.session;
+        }
+        http.get(host + "/open?" + querystring.stringify(params));
+        var ret = _server.apply(this, arguments);
+        server = ret;
+        return ret.on("socket", function(socket) {
+            var query = url.parse(socket.uri, true).query;
+            query.transport.should.be.equal(options.transports[0]);
+        });
+    };
+    
     before(function(done) {
         httpServer.listen(0, function() {
             done();
@@ -66,30 +88,7 @@ describe("client", function() {
             done();
         });
     });
-    beforeEach(function() {
-        // Override to tell client testee to connect to this server and replace
-        // server reference
-        var self = this;
-        self._server = vibe.server;
-        vibe.server = function(options) {
-            var params = {uri: "http://localhost:" + httpServer.address().port + "/vibe"};
-            // To test multiple clients concurrently
-            if (factory.args.session) {
-                params.session = factory.args.session;
-            }
-            http.get(host + "/open?" + querystring.stringify(params));
-            var ret = self._server.apply(this, arguments);
-            server = ret;
-            return ret.on("socket", function(socket) {
-                var query = url.parse(socket.uri, true).query;
-                query.transport.should.be.equal(options.transports[0]);
-            });
-        };
-    });
-    afterEach(function() {
-        vibe.server = this._server;
-    });
-
+    
     factory.create("should open a new socket", function(done) {
         vibe.server({transports: [this.args.transport]})
         .on("socket", function(socket) {
