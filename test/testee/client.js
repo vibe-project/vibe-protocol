@@ -5,7 +5,7 @@ var http = require("http");
 http.globalAgent.maxSockets = Infinity;
 
 var client = vibe.client();
-var sockets = {};
+var sockets = [];
 http.createServer(function(req, res) {
     var urlObj = url.parse(req.url, true);
     var query = urlObj.query;
@@ -13,10 +13,10 @@ http.createServer(function(req, res) {
     case "/open":
         var socket = client.open(query.uri);
         socket.on("open", function() {
-            sockets[this.id] = true;
+            sockets.push(this.id);
         })
         .on("close", function() {
-            delete sockets[this.id];
+            sockets.splice(sockets.indexOf(socket.id), 1);
         })
         .on("abort", function() {
             this.close();
@@ -52,7 +52,7 @@ http.createServer(function(req, res) {
         res.end();
         break;
     case "/alive":
-        res.end("" + (query.id in sockets));
+        res.end("" + (sockets.indexOf(query.id) != -1));
         break;
     }
 })

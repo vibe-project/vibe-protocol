@@ -3,7 +3,7 @@ var url = require("url");
 var http = require("http");
 
 var server;
-var sockets = {};
+var sockets = [];
 http.createServer().on("request", function(req, res) {
     var urlObj = url.parse(req.url, true);
     var query = urlObj.query;
@@ -18,9 +18,9 @@ http.createServer().on("request", function(req, res) {
         }
         server = vibe.server(options);
         server.on("socket", function(socket) {
-            sockets[socket.id] = true;
+            sockets.push(socket.id);
             socket.on("close", function() {
-                delete sockets[socket.id];
+                sockets.splice(sockets.indexOf(socket.id), 1);
             })
             .on("echo", function(data) {
                 socket.send("echo", data);
@@ -54,7 +54,7 @@ http.createServer().on("request", function(req, res) {
         res.end();
         break;
     case "/alive":
-        res.end("" + (query.id in sockets));
+        res.end("" + (sockets.indexOf(query.id) != -1));
         break;
     case "/vibe":
         server.handleRequest(req, res);
