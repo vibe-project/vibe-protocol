@@ -3,11 +3,7 @@ var should = require("chai").should();
 var url = require("url");
 var http = require("http");
 var querystring = require("querystring");
-var _vibe = require("../lib/index");
-var vibe = {};
-for (var i in _vibe) {
-    vibe[i] = _vibe[i];
-}
+var vibe = require("../lib/index");
 
 http.globalAgent.maxSockets = Infinity;
 
@@ -36,10 +32,17 @@ describe("client", function() {
     this.timeout(20 * 1000);
 
     var host = "http://localhost:9000";    
-    // Current Vibe server to test a client implementation
-    var server;
     // To be destroyed
+    var sockets = [];
     var netSockets = [];
+    // A Vibe server
+    var server = vibe.server();
+    server.on("socket", function(socket) {
+        sockets.push(socket);
+        socket.on("close", function() {
+            sockets.splice(sockets.indexOf(socket), 1);
+        });
+    });
     // An HTTP server to install Vibe server
     var httpServer = http.createServer();
     httpServer.on("connection", function(socket) {
@@ -58,6 +61,30 @@ describe("client", function() {
             server.handleUpgrade(req, sock, head);
         }
     });
+
+    function run(options) {
+        server.setTransports(options.transports);
+        if (options.heartbeat) {
+            server.setHeartbeat(options.heartbeat);
+        }
+        if (options._heartbeat) {
+            server.set_heartbeat(options._heartbeat);
+        }
+        server.on("socket", function(socket) {
+            var query = url.parse(socket.uri, true).query;
+            query.transport.should.be.equal(options.transports[0]);
+        });
+        // Give a chance to add handlers
+        process.nextTick(function() {
+            var params = {uri: "http://localhost:" + httpServer.address().port + "/vibe"};
+            // To test multiple clients concurrently
+            if (factory.args.session) {
+                params.session = factory.args.session;
+            }
+            http.get(host + "/open?" + querystring.stringify(params));
+        });
+        return server;
+    }
     
     before(function(done) {
         httpServer.listen(0, function() {
@@ -74,48 +101,27 @@ describe("client", function() {
         });
     });
     beforeEach(function() {
-        // Override to tell client testee to connect to this server and replace
-        // server reference
-        var self = this;
-        self.sockets = [];
-        self._server = vibe.server;
-        vibe.server = function(options) {
-            var params = {uri: "http://localhost:" + httpServer.address().port + "/vibe"};
-            // To test multiple clients concurrently
-            if (factory.args.session) {
-                params.session = factory.args.session;
-            }
-            http.get(host + "/open?" + querystring.stringify(params));
-            server = self._server.apply(this, arguments)
-            .on("socket", function(socket) {
-                self.sockets.push(socket);
-                socket.on("close", function() {
-                    self.sockets.splice(self.sockets.indexOf(socket), 1);
-                });
-                var query = url.parse(socket.uri, true).query;
-                query.transport.should.be.equal(options.transports[0]);
-            });
-            return server;
-        };
+        // To restore the original stack
+        this.socketListeners = server.listeners("socket");
     });
     afterEach(function() {
-        var self = this;
+        // Remove the listener added by the test and restore the original stack
+        server.removeAllListeners("socket");
+        this.socketListeners.forEach(server.on.bind(server, "socket"));
         // To release stress of browsers, clean sockets
-        self.sockets.forEach(function(socket) {
+        sockets.forEach(function(socket) {
             socket.close();
         });
-        // Restore reference
-        vibe.server = self._server;
     });
     
     factory.create("should open a new socket", function(done) {
-        vibe.server({transports: [this.args.transport]})
+        run({transports: [this.args.transport]})
         .on("socket", function(socket) {
             done();
         });
     });
     factory.create("should close the socket", function(done) {
-        vibe.server({transports: [this.args.transport]})
+        run({transports: [this.args.transport]})
         .on("socket", function(socket) {
             socket.on("close", function() {
                 done();
@@ -128,7 +134,7 @@ describe("client", function() {
     factory.create("should detect the server's disconnection", function(done) {
         var test = this.test;
         // A client who can't detect disconnection will notice it by heartbeat
-        vibe.server({transports: [this.args.transport], heartbeat: 10000, _heartbeat: 5000})
+        run({transports: [this.args.transport], heartbeat: 10000, _heartbeat: 5000})
         .on("socket", function(socket) {
             socket.on("close", function check() {
                 // This request checks if this socket in client is alive or not.
@@ -153,7 +159,7 @@ describe("client", function() {
         });
     });
     factory.create("should exchange an event", function(done) {
-        vibe.server({transports: [this.args.transport]})
+        run({transports: [this.args.transport]})
         .on("socket", function(socket) {
             socket.on("echo", function(data) {
                 data.should.be.equal("data");
@@ -163,7 +169,7 @@ describe("client", function() {
         });
     });
     factory.create("should exchange an event containing of multi-byte characters", function(done) {
-        vibe.server({transports: [this.args.transport]})
+        run({transports: [this.args.transport]})
         .on("socket", function(socket) {
             socket.on("echo", function(data) {
                 data.should.be.equal("라면");
@@ -174,7 +180,7 @@ describe("client", function() {
     });
     factory.create("should exchange an event of 2KB", function(done) {
         var text2KB = Array(2048).join("K");
-        vibe.server({transports: [this.args.transport]})
+        run({transports: [this.args.transport]})
         .on("socket", function(socket) {
             socket.on("echo", function(data) {
                 data.should.be.equal(text2KB);
@@ -185,7 +191,7 @@ describe("client", function() {
     });
     factory.create("should not lose any event in an exchange of one hundred of event", function(done) {
         var timer, sent = [], received = [];
-        vibe.server({transports: [this.args.transport]})
+        run({transports: [this.args.transport]})
         .on("socket", function(socket) {
             socket.on("echo", function(i) {
                 received.push(i);
@@ -208,7 +214,7 @@ describe("client", function() {
         });
     });
     factory.create("should support heartbeat", function(done) { 
-        vibe.server({transports: [this.args.transport], heartbeat: 2500, _heartbeat: 2400})
+        run({transports: [this.args.transport], heartbeat: 2500, _heartbeat: 2400})
         .on("socket", function(socket) {
             socket.once("heartbeat", function() {
                 this.once("heartbeat", function() {
@@ -220,7 +226,7 @@ describe("client", function() {
         });
     });
     factory.create("should close the socket if heartbeat fails", function(done) {
-        vibe.server({transports: [this.args.transport], heartbeat: 2500, _heartbeat: 2400})
+        run({transports: [this.args.transport], heartbeat: 2500, _heartbeat: 2400})
         .on("socket", function(socket) {
             socket.send = function() {
                 return this;
@@ -233,7 +239,7 @@ describe("client", function() {
     if (factory.args.extension.indexOf("reply") !== -1) {
         describe("reply", function() {
             factory.create("should execute the resolve callback when receiving event", function(done) {
-                vibe.server({transports: [this.args.transport]})
+                run({transports: [this.args.transport]})
                 .on("socket", function(socket) {
                     socket.send("/reply/inbound", {type: "resolved", data: Math.PI}, function(value) {
                         value.should.be.equal(Math.PI);
@@ -244,7 +250,7 @@ describe("client", function() {
                 });
             });
             factory.create("should execute the reject callback when receiving event", function(done) {
-                vibe.server({transports: [this.args.transport]})
+                run({transports: [this.args.transport]})
                 .on("socket", function(socket) {
                     socket.send("/reply/inbound", {type: "rejected", data: Math.PI}, function() {
                         true.should.be.false;
@@ -255,7 +261,7 @@ describe("client", function() {
                 });
             });
             factory.create("should execute the resolve callback when sending event", function(done) {
-                vibe.server({transports: [this.args.transport]})
+                run({transports: [this.args.transport]})
                 .on("socket", function(socket) {
                     socket.on("test", function(data, reply) {
                         reply.resolve(data);
@@ -268,7 +274,7 @@ describe("client", function() {
                 });
             });
             factory.create("should execute the reject callback when sending event", function(done) {
-                vibe.server({transports: [this.args.transport]})
+                run({transports: [this.args.transport]})
                 .on("socket", function(socket) {
                     socket.on("test", function(data, reply) {
                         reply.reject(data);
