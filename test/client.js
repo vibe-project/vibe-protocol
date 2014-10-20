@@ -74,15 +74,12 @@ describe("client", function() {
             var query = url.parse(socket.uri, true).query;
             query.transport.should.be.equal(options.transports[0]);
         });
-        // Give a chance to add handlers
-        process.nextTick(function() {
-            var params = {uri: "http://localhost:" + httpServer.address().port + "/vibe"};
-            // To test multiple clients concurrently
-            if (factory.args.session) {
-                params.session = factory.args.session;
-            }
-            http.get(host + "/open?" + querystring.stringify(params));
-        });
+        var params = {uri: "http://localhost:" + httpServer.address().port + "/vibe"};
+        // To test multiple clients concurrently
+        if (factory.args.session) {
+            params.session = factory.args.session;
+        }
+        http.get(host + "/open?" + querystring.stringify(params));
         return server;
     }
     
