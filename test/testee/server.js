@@ -9,6 +9,7 @@ server.on("socket", function(socket) {
     socket.on("close", function() {
         sockets.splice(sockets.indexOf(socket.id), 1);
     })
+    .on("error", function() {})
     .on("echo", function(data) {
         socket.send("echo", data);
     });

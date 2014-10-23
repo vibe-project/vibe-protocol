@@ -18,6 +18,7 @@ http.createServer(function(req, res) {
         .on("close", function() {
             sockets.splice(sockets.indexOf(socket.id), 1);
         })
+        .on("error", function() {})
         .on("abort", function() {
             this.close();
         })

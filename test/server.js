@@ -201,8 +201,13 @@ describe("server", function() {
     factory.create("should close the socket if heartbeat fails", function(done) {
         open({transport: this.args.transport, heartbeat: 2500, _heartbeat: 2400}, function(socket) {
             socket.on("open", function() {
-                this.send = function() { return this; };
+                // Breaks heartbeat functionality
+                this.send = function() {
+                    return this;
+                };
             })
+            // The server closes a connection because of a failure of the
+            // heartbeat and the client regards it as normal closure.
             .on("close", function() {
                 done();
             });
