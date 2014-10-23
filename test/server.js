@@ -206,8 +206,7 @@ describe("server", function() {
                     return this;
                 };
             })
-            // The server closes a connection because of a failure of the
-            // heartbeat and the client regards it as normal closure.
+            .on("error", function() {})
             .on("close", function() {
                 done();
             });

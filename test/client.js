@@ -229,9 +229,8 @@ describe("client", function() {
             socket.send = function() {
                 return this;
             };
-            // The client closes a connection because of a failure of the
-            // heartbeat and the server regards it as normal closure.
-            socket.on("close", function() {
+            socket.on("error", function() {})
+            .on("close", function() {
                 done();
             });
         });
