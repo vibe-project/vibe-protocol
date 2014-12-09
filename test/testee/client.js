@@ -4,23 +4,19 @@ var http = require("http");
 
 http.globalAgent.maxSockets = Infinity;
 
-var client = vibe.client();
-var sockets = [];
+var sockets = {};
 http.createServer(function(req, res) {
     var urlObj = url.parse(req.url, true);
     var query = urlObj.query;
     switch (urlObj.pathname) {
     case "/open":
-        var socket = client.open(query.uri);
-        socket.on("open", function() {
-            sockets.push(this.id);
-        })
-        .on("close", function() {
-            sockets.splice(sockets.indexOf(socket.id), 1);
-        })
-        .on("error", function() {})
+        var socket = vibe.open(query.uri, {transport: query.transport});
+        socket.on("error", function() {})
         .on("abort", function() {
             this.close();
+        })
+        .on("name", function(name) {
+            sockets[name] = this;
         })
         .on("echo", function(data) {
             this.send("echo", data);
@@ -53,7 +49,11 @@ http.createServer(function(req, res) {
         res.end();
         break;
     case "/alive":
-        res.end("" + (sockets.indexOf(query.id) != -1));
+        var alive = query.name in sockets;
+        if (alive) {
+            delete sockets[query.name];
+        }
+        res.end("" + alive);
         break;
     }
 })

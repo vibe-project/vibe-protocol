@@ -2,14 +2,16 @@ var vibe = require("../../lib/index");
 var url = require("url");
 var http = require("http");
 
-var sockets = [];
+var sockets = {};
 var server = vibe.server();
 server.on("socket", function(socket) {
-    sockets.push(socket.id);
-    socket.on("close", function() {
-        sockets.splice(sockets.indexOf(socket.id), 1);
+    socket.on("error", function() {})
+    .on("abort", function() {
+        this.close();
     })
-    .on("error", function() {})
+    .on("name", function(name) {
+        sockets[name] = this;
+    })
     .on("echo", function(data) {
         socket.send("echo", data);
     });
@@ -44,7 +46,6 @@ http.createServer().on("request", function(req, res) {
     var query = urlObj.query;
     switch (urlObj.pathname) {
     case "/setup":
-        server.setTransports(query.transports.split(","));
         if (query.heartbeat) {
             server.setHeartbeat(+query.heartbeat);
         }
@@ -54,7 +55,11 @@ http.createServer().on("request", function(req, res) {
         res.end();
         break;
     case "/alive":
-        res.end("" + (sockets.indexOf(query.id) != -1));
+        var alive = query.name in sockets;
+        if (alive) {
+            delete sockets[query.name];
+        }
+        res.end("" + alive);
         break;
     case "/vibe":
         server.handleRequest(req, res);

@@ -3,6 +3,7 @@ var should = require("chai").should();
 var url = require("url");
 var http = require("http");
 var querystring = require("querystring");
+var crypto = require("crypto");
 var vibe = require("../lib/index");
 
 http.globalAgent.maxSockets = Infinity;
@@ -14,9 +15,11 @@ var factory = {
             "vibe.transports": "",
             "vibe.extension": "",
         }
-    }).vibe,
+    })
+    .vibe,
     create: function(title, fn) {
         describe(title, function() {
+            // Per transport
             factory.args.transports.split(",").forEach(function(transport) {
                 var args = {transport: transport};
                 it(transport, function(done) {
@@ -29,9 +32,9 @@ var factory = {
 };
 
 describe("client", function() {
-    this.timeout(20 * 1000);
+    this.timeout(15 * 1000);
 
-    var host = "http://localhost:9000";    
+    var origin = "http://localhost:9000";
     // To be destroyed
     var sockets = [];
     var netSockets = [];
@@ -63,24 +66,21 @@ describe("client", function() {
     });
 
     function run(options) {
-        server.setTransports(options.transports);
         if (options.heartbeat) {
             server.setHeartbeat(options.heartbeat);
         }
         if (options._heartbeat) {
             server.set_heartbeat(options._heartbeat);
         }
-        server.on("socket", function(socket) {
-            var query = url.parse(socket.uri, true).query;
-            query.transport.should.be.equal(options.transports[0]);
-        });
-        var params = {uri: "http://localhost:" + httpServer.address().port + "/vibe"};
+        var params = {
+            uri: "http://localhost:" + httpServer.address().port + "/vibe",
+            transport: options.transport
+        };
         // To test multiple clients concurrently
         if (factory.args.session) {
             params.session = factory.args.session;
         }
-        http.get(host + "/open?" + querystring.stringify(params));
-        return server;
+        http.get(origin + "/open?" + querystring.stringify(params));
     }
     
     before(function(done) {
@@ -112,30 +112,27 @@ describe("client", function() {
     });
     
     factory.create("should open a new socket", function(done) {
-        run({transports: [this.args.transport]})
-        .on("socket", function(socket) {
+        server.on("socket", function(socket) {
             done();
         });
+        run({transport: this.args.transport});
     });
     factory.create("should close the socket", function(done) {
-        run({transports: [this.args.transport]})
-        .on("socket", function(socket) {
+        server.on("socket", function(socket) {
             socket.on("close", function() {
                 done();
             })
-            // Though the client couldn't fire open event now, it will receive
-            // this event some time later.
             .send("abort");
         });
+        run({transport: this.args.transport});
     });
     factory.create("should detect the server's disconnection", function(done) {
         var test = this.test;
-        // A client who can't detect disconnection will notice it by heartbeat
-        run({transports: [this.args.transport], heartbeat: 10000, _heartbeat: 5000})
-        .on("socket", function(socket) {
+        server.on("socket", function(socket) {
+            var name = crypto.randomBytes(3).toString("hex");
             socket.on("close", function check() {
                 // This request checks if this socket in client is alive or not.
-                http.get(host + "/alive?id=" + socket.id, function(res) {
+                http.get(origin + "/alive?name=" + name, function(res) {
                     var body = "";
                     res.on("data", function(chunk) {
                         body += chunk;
@@ -152,49 +149,51 @@ describe("client", function() {
                     });
                 });
             })
-            .close();
+            .send("name", name).close();
         });
+        // A client who can't detect disconnection will notice it by heartbeat
+        run({transport: this.args.transport, heartbeat: 10000, _heartbeat: 5000});
     });
     factory.create("should exchange an event", function(done) {
-        run({transports: [this.args.transport]})
-        .on("socket", function(socket) {
+        server.on("socket", function(socket) {
             socket.on("echo", function(data) {
                 data.should.be.equal("data");
                 done();
             })
             .send("echo", "data");
         });
+        run({transport: this.args.transport});
     });
     factory.create("should exchange an event containing of multi-byte characters", function(done) {
-        run({transports: [this.args.transport]})
-        .on("socket", function(socket) {
+        server.on("socket", function(socket) {
             socket.on("echo", function(data) {
                 data.should.be.equal("라면");
                 done();
             })
             .send("echo", "라면");
         });
+        run({transport: this.args.transport});
     });
     factory.create("should exchange an event of 2KB", function(done) {
         var text2KB = Array(2048).join("K");
-        run({transports: [this.args.transport]})
-        .on("socket", function(socket) {
+        server.on("socket", function(socket) {
             socket.on("echo", function(data) {
                 data.should.be.equal(text2KB);
                 done();
             })
             .send("echo", text2KB);
         });
+        run({transport: this.args.transport});
     });
     factory.create("should not lose any event in an exchange of one hundred of event", function(done) {
         var timer, sent = [], received = [];
-        run({transports: [this.args.transport]})
-        .on("socket", function(socket) {
+        server.on("socket", function(socket) {
             socket.on("echo", function(i) {
                 received.push(i);
-                received.sort();
                 clearTimeout(timer);
                 timer = setTimeout(function() {
+                    sent.sort();
+                    received.sort();
                     received.should.be.deep.equal(sent);
                     done();
                 }, 1500);
@@ -203,28 +202,15 @@ describe("client", function() {
                 (function(i) {
                     setTimeout(function() {
                         sent.push(i);
-                        sent.sort();
                         socket.send("echo", i);
                     }, 10);
                 })(i);
             }
         });
-    });
-    factory.create("should support heartbeat", function(done) { 
-        run({transports: [this.args.transport], heartbeat: 2500, _heartbeat: 2400})
-        .on("socket", function(socket) {
-            socket.once("heartbeat", function() {
-                this.once("heartbeat", function() {
-                    this.once("heartbeat", function() {
-                        done();
-                    }); 
-                });
-            });
-        });
+        run({transport: this.args.transport});
     });
     factory.create("should close the socket if heartbeat fails", function(done) {
-        run({transports: [this.args.transport], heartbeat: 2500, _heartbeat: 2400})
-        .on("socket", function(socket) {
+        server.on("socket", function(socket) {
             // Breaks heartbeat functionality
             socket.send = function() {
                 return this;
@@ -234,12 +220,12 @@ describe("client", function() {
                 done();
             });
         });
+        run({transport: this.args.transport, heartbeat: 2500, _heartbeat: 2400});
     });
     if (factory.args.extension.indexOf("reply") !== -1) {
         describe("reply", function() {
             factory.create("should execute the resolve callback when receiving event", function(done) {
-                run({transports: [this.args.transport]})
-                .on("socket", function(socket) {
+                server.on("socket", function(socket) {
                     socket.send("/reply/inbound", {type: "resolved", data: Math.PI}, function(value) {
                         value.should.be.equal(Math.PI);
                         done();
@@ -247,10 +233,10 @@ describe("client", function() {
                         true.should.be.false;
                     });
                 });
+                run({transport: this.args.transport});
             });
             factory.create("should execute the reject callback when receiving event", function(done) {
-                run({transports: [this.args.transport]})
-                .on("socket", function(socket) {
+                server.on("socket", function(socket) {
                     socket.send("/reply/inbound", {type: "rejected", data: Math.PI}, function() {
                         true.should.be.false;
                     }, function(value) {
@@ -258,10 +244,10 @@ describe("client", function() {
                         done();
                     });
                 });
+                run({transport: this.args.transport});
             });
             factory.create("should execute the resolve callback when sending event", function(done) {
-                run({transports: [this.args.transport]})
-                .on("socket", function(socket) {
+                server.on("socket", function(socket) {
                     socket.on("test", function(data, reply) {
                         reply.resolve(data);
                         this.on("done", function(value) {
@@ -271,10 +257,10 @@ describe("client", function() {
                     })
                     .send("/reply/outbound", {type: "resolved", data: Math.E});
                 });
+                run({transport: this.args.transport});
             });
             factory.create("should execute the reject callback when sending event", function(done) {
-                run({transports: [this.args.transport]})
-                .on("socket", function(socket) {
+                server.on("socket", function(socket) {
                     socket.on("test", function(data, reply) {
                         reply.reject(data);
                         this.on("done", function(value) {
@@ -284,6 +270,7 @@ describe("client", function() {
                     })
                     .send("/reply/outbound", {type: "rejected", data: Math.E});
                 });
+                run({transport: this.args.transport});
             });
         });
     }

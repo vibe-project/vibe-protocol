@@ -1,6 +1,6 @@
 {
   "name": "vibe-protocol",
-  "version": "3.0.0-Alpha3",
+  "version": "3.0.0-Alpha4",
   "homepage": "http://vibe-project.github.io/projects/vibe-protocol/",
   "description": "A reference implementation and test suite for Vibe protocol",
   "author": {
@@ -17,14 +17,13 @@
     "test": "grunt"
   },
   "dependencies": {
-    "ws": "0.4.32",
-    "node-uuid": "1.4.1",
-    "eventsource": "0.1.3"
+    "ws": "0.5.0",
+    "node-uuid": "1.4.2"
   },
   "devDependencies": {
     "grunt": "0.4.5",
     "mocha": "2.0.1",
-    "chai": "1.9.2",
+    "chai": "1.10.0",
     "minimist": "1.1.0"
   }
 }

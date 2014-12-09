@@ -13,7 +13,7 @@ module.exports = function(grunt) {
             args: [
                 "./node_modules/mocha/bin/mocha", 
                 "test/client.js", 
-                "--vibe.transports", "ws,sse,streamxhr,streamxdr,streamiframe,longpollajax,longpollxdr,longpolljsonp",
+                "--vibe.transports", "ws,stream,longpoll",
                 "--vibe.extension", "reply"]
         }, function(error) {
             done(!error);
@@ -32,7 +32,7 @@ module.exports = function(grunt) {
             args: [
                 "./node_modules/mocha/bin/mocha", 
                 "test/server.js", 
-                "--vibe.transports", "ws,sse,streamxhr,streamxdr,streamiframe,longpollajax,longpollxdr,longpolljsonp",
+                "--vibe.transports", "ws,stream,longpoll",
                 "--vibe.extension", "reply"]
         }, function(error) {
             done(!error);

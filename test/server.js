@@ -3,6 +3,7 @@ var should = require("chai").should();
 var url = require("url");
 var http = require("http");
 var querystring = require("querystring");
+var crypto = require("crypto");
 var vibe = require("../lib/index");
 
 http.globalAgent.maxSockets = Infinity;
@@ -14,14 +15,16 @@ var factory = {
             "vibe.transports": "",
             "vibe.extension": "",
         }
-    }).vibe,
+    })
+    .vibe,
     create: function(title, fn) {
         describe(title, function() {
+            // Per transport
             factory.args.transports.split(",").forEach(function(transport) {
                 var args = {transport: transport};
                 it(transport, function(done) {
                     this.args = args;
-                    fn.call(this, done);
+                    fn.apply(this, arguments);
                 });
             });
         });
@@ -29,16 +32,14 @@ var factory = {
 };
 
 describe("server", function() {
-    this.timeout(20 * 1000);
+    this.timeout(15 * 1000);
     
-    var host = "http://localhost:8000";
-    var uri = host + "/vibe";
-    var client = vibe.client();
+    var origin = "http://localhost:8000";
+    // To be destroyed
     var sockets = [];
     
     function open(options, fn) {
-        var params = {transports: [options.transport].join(",")};
-        delete options.transport;
+        var params = {};
         if (options.heartbeat) {
             params.heartbeat = options.heartbeat;
             delete options.heartbeat;
@@ -47,13 +48,11 @@ describe("server", function() {
             params._heartbeat = options._heartbeat;
             delete options._heartbeat;
         }
-        http.get(host + "/setup?" + querystring.stringify(params), function() {
+        http.get(origin + "/setup?" + querystring.stringify(params), function() {
             // Start a test after completing setup
-            var socket = client.open(uri, options)
+            var socket = vibe.open(origin + "/vibe", options)
             .on("open", function() {
                 sockets.push(this);
-                var query = url.parse(this.uri, true).query;
-                query.transport.should.be.equal(params.transports.split(",")[0]);
             })
             .on("close", function() {
                 sockets.splice(sockets.indexOf(this), 1);
@@ -80,17 +79,8 @@ describe("server", function() {
     factory.create("should close the socket", function(done) {
         var test = this.test;
         open({transport: this.args.transport}, function(socket) {
-            socket.on("open", function abort() {
-                // This request aborts this socket in server
-                http.get(uri + "?id=" + socket.id + "&when=abort", function() {
-                    // The server may not have fired open event
-                    // and the socket couldn't be aborted.
-                    // Therefore, request again until the test
-                    // is passed or timed out.
-                    if (test.state !== "passed" && !test.timedOut) {
-                        setTimeout(abort, 1000);
-                    }
-                });
+            socket.on("open", function() {
+                this.send("abort");
             })
             .on("close", function() {
                 done();
@@ -101,13 +91,14 @@ describe("server", function() {
         var test = this.test;
         // A server who can't detect disconnection will notice it by heartbeat
         open({transport: this.args.transport, heartbeat: 10000, _heartbeat: 5000}, function(socket) {
+            var name = crypto.randomBytes(3).toString("hex");
             socket.on("open", function() {
-                this.close();
+                this.send("name", name).close();
             })
             .on("close", function check() {
                 // This request checks if this socket in server
                 // is alive or not.
-                http.get(host + "/alive?id=" + socket.id, function(res) {
+                http.get(origin + "/alive?name=" + name, function(res) {
                     var body = "";
                     res.on("data", function(chunk) {
                         body += chunk;
@@ -170,7 +161,6 @@ describe("server", function() {
                     (function(i) {
                         setTimeout(function() {
                             sent.push(i);
-                            sent.sort();
                             self.send("echo", i);
                         }, 10);
                     })(i);
@@ -178,23 +168,13 @@ describe("server", function() {
             })
             .on("echo", function(i) {
                 received.push(i);
-                received.sort();
                 clearTimeout(timer);
                 timer = setTimeout(function() {
+                    sent.sort();
+                    received.sort();
                     received.should.be.deep.equal(sent);
                     done();
                 }, 1500);
-            });
-        });
-    });
-    factory.create("should support heartbeat", function(done) {
-        open({transport: this.args.transport, heartbeat: 2500, _heartbeat: 2400}, function(socket) {
-            socket.once("heartbeat", function() {
-                this.once("heartbeat", function() {
-                    this.once("heartbeat", function() {
-                        done();
-                    }); 
-                });
             });
         });
     });
