@@ -4,7 +4,6 @@ var http = require("http");
 
 http.globalAgent.maxSockets = Infinity;
 
-var sockets = {};
 http.createServer(function(req, res) {
     var urlObj = url.parse(req.url, true);
     var query = urlObj.query;
@@ -14,9 +13,6 @@ http.createServer(function(req, res) {
         socket.on("error", function() {})
         .on("abort", function() {
             this.close();
-        })
-        .on("name", function(name) {
-            sockets[name] = this;
         })
         .on("echo", function(data) {
             this.send("echo", data);
@@ -47,13 +43,6 @@ http.createServer(function(req, res) {
             }
         });
         res.end();
-        break;
-    case "/alive":
-        var alive = query.name in sockets;
-        if (alive) {
-            delete sockets[query.name];
-        }
-        res.end("" + alive);
         break;
     }
 })

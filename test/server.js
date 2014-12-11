@@ -87,37 +87,6 @@ describe("server", function() {
             });
         });
     });
-    factory.create("should detect the client's disconnection", function(done) {
-        var test = this.test;
-        // A server who can't detect disconnection will notice it by heartbeat
-        open({transport: this.args.transport, heartbeat: 10000, _heartbeat: 5000}, function(socket) {
-            var name = crypto.randomBytes(3).toString("hex");
-            socket.on("open", function() {
-                this.send("name", name).close();
-            })
-            .on("close", function check() {
-                // This request checks if this socket in server
-                // is alive or not.
-                http.get(origin + "/alive?name=" + name, function(res) {
-                    var body = "";
-                    res.on("data", function(chunk) {
-                        body += chunk;
-                    })
-                    .on("end", function() {
-                        // The 'false' body means the server has
-                        // no such socket that is a successful
-                        // case. If not, request again until the
-                        // server notices it.
-                        if (body === "false") {
-                            done();
-                        } else if (test.state !== "passed" && !test.timedOut) {
-                            setTimeout(check, 1000);
-                        }
-                    });
-                });
-            });
-        });
-    });
     factory.create("should exchange an event", function(done) {
         open({transport: this.args.transport}, function(socket) {
             socket.on("open", function() {
