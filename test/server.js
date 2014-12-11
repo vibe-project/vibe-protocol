@@ -40,14 +40,10 @@ describe("server", function() {
     
     function open(options, fn) {
         var params = {};
-        if (options.heartbeat) {
-            params.heartbeat = options.heartbeat;
-            delete options.heartbeat;
-        }
-        if (options._heartbeat) {
-            params._heartbeat = options._heartbeat;
-            delete options._heartbeat;
-        }
+        params.heartbeat = options.heartbeat || 20000;
+        delete options.heartbeat;
+        params._heartbeat = options._heartbeat || 5000;
+        delete options._heartbeat;
         http.get(origin + "/setup?" + querystring.stringify(params), function() {
             // Start a test after completing setup
             var socket = vibe.open(origin + "/vibe", options)

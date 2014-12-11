@@ -66,12 +66,8 @@ describe("client", function() {
     });
 
     function run(options) {
-        if (options.heartbeat) {
-            server.setHeartbeat(options.heartbeat);
-        }
-        if (options._heartbeat) {
-            server.set_heartbeat(options._heartbeat);
-        }
+        server.setHeartbeat(options.heartbeat || 20000);
+        server.set_heartbeat(options._heartbeat || 5000);
         var params = {
             uri: "http://localhost:" + httpServer.address().port + "/vibe",
             transport: options.transport
