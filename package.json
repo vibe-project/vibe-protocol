@@ -17,7 +17,7 @@
     "test": "grunt"
   },
   "dependencies": {
-    "ws": "0.5.0",
+    "ws": "0.6.3",
     "node-uuid": "1.4.2"
   },
   "devDependencies": {
