@@ -39,14 +39,12 @@ describe("server", function() {
     var sockets = [];
     
     function open(options, fn) {
-        var params = {};
-        params.heartbeat = options.heartbeat || 20000;
-        delete options.heartbeat;
-        params._heartbeat = options._heartbeat || 5000;
-        delete options._heartbeat;
-        http.get(origin + "/setup?" + querystring.stringify(params), function() {
+        http.get(origin + "/setup?" + querystring.stringify({
+            heartbeat: options.heartbeat || 20000,
+            _heartbeat: options._heartbeat || 5000
+        }), function() {
             // Start a test after completing setup
-            var socket = vibe.open(origin + "/vibe", options)
+            var socket = vibe.open(origin + "/vibe", {transports: [options.transport]})
             .on("open", function() {
                 sockets.push(this);
             })
