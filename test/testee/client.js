@@ -9,7 +9,7 @@ http.createServer(function(req, res) {
     var query = urlObj.query;
     switch (urlObj.pathname) {
     case "/open":
-        var socket = vibe.open(query.uri, {transports: [query.transport]});
+        var socket = vibe.open(query.uri);
         socket.on("error", function() {})
         .on("abort", function() {
             this.close();

@@ -44,7 +44,7 @@ describe("server", function() {
             _heartbeat: options._heartbeat || 5000
         }), function() {
             // Start a test after completing setup
-            var socket = vibe.open(origin + "/vibe", {transports: [options.transport]})
+            var socket = vibe.open(origin + "/vibe?transport=" + options.transport)
             .on("open", function() {
                 sockets.push(this);
             })

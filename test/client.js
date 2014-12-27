@@ -69,8 +69,7 @@ describe("client", function() {
         server.setHeartbeat(options.heartbeat || 20000);
         server.set_heartbeat(options._heartbeat || 5000);
         var params = {
-            uri: "http://localhost:" + httpServer.address().port + "/vibe",
-            transport: options.transport
+            uri: "http://localhost:" + httpServer.address().port + "/vibe?transport=" + options.transport
         };
         // To test multiple clients concurrently
         if (factory.args.session) {
