@@ -12,8 +12,7 @@ http.globalAgent.maxSockets = Infinity;
 var factory = {
     args: parseArgs(process.argv, {
         default: {
-            "vibe.transports": "",
-            "vibe.extension": "",
+            "vibe.transports": ""
         }
     })
     .vibe,
@@ -151,60 +150,58 @@ describe("server", function() {
             });
         });
     });
-    if (factory.args.extension.indexOf("reply") !== -1) {
-        describe("reply", function() {
-            factory.create("should execute the resolve callback in receiving event", function(done) {
-                open({transport: this.args.transport}, function(socket) {
-                    socket.on("open", function() {
-                        this.send("/reply/inbound", {type: "resolved", data: Math.PI}, function(value) {
-                            value.should.be.equal(Math.PI);
-                            done();
-                        }, function() {
-                            true.should.be.false;
-                        });
-                    });
-                });
-            });
-            factory.create("should execute the reject callback in receiving event", function(done) {
-                open({transport: this.args.transport}, function(socket) {
-                    socket.on("open", function() {
-                        this.send("/reply/inbound", {type: "rejected", data: Math.PI}, function() {
-                            true.should.be.false;
-                        }, function(value) {
-                            value.should.be.equal(Math.PI);
-                            done();
-                        });
-                    });
-                });
-            });
-            factory.create("should execute the resolve callback in sending event", function(done) {
-                open({transport: this.args.transport}, function(socket) {
-                    socket.on("open", function() {
-                        this.send("/reply/outbound", {type: "resolved", data: Math.E});
-                    })
-                    .on("test", function(data, reply) {
-                        reply.resolve(data);
-                        this.on("done", function(value) {
-                            value.should.be.equal(Math.E);
-                            done();
-                        });
-                    });
-                });
-            });
-            factory.create("should execute the reject callback in sending event", function(done) {
-                open({transport: this.args.transport}, function(socket) {
-                    socket.on("open", function() {
-                        this.send("/reply/outbound", {type: "rejected", data: Math.E});
-                    })
-                    .on("test", function(data, reply) {
-                        reply.reject(data);
-                        this.on("done", function(value) {
-                            value.should.be.equal(Math.E);
-                            done();
-                        });
+    describe("reply", function() {
+        factory.create("should execute the resolve callback in receiving event", function(done) {
+            open({transport: this.args.transport}, function(socket) {
+                socket.on("open", function() {
+                    this.send("/reply/inbound", {type: "resolved", data: Math.PI}, function(value) {
+                        value.should.be.equal(Math.PI);
+                        done();
+                    }, function() {
+                        true.should.be.false;
                     });
                 });
             });
         });
-    }
+        factory.create("should execute the reject callback in receiving event", function(done) {
+            open({transport: this.args.transport}, function(socket) {
+                socket.on("open", function() {
+                    this.send("/reply/inbound", {type: "rejected", data: Math.PI}, function() {
+                        true.should.be.false;
+                    }, function(value) {
+                        value.should.be.equal(Math.PI);
+                        done();
+                    });
+                });
+            });
+        });
+        factory.create("should execute the resolve callback in sending event", function(done) {
+            open({transport: this.args.transport}, function(socket) {
+                socket.on("open", function() {
+                    this.send("/reply/outbound", {type: "resolved", data: Math.E});
+                })
+                .on("test", function(data, reply) {
+                    reply.resolve(data);
+                    this.on("done", function(value) {
+                        value.should.be.equal(Math.E);
+                        done();
+                    });
+                });
+            });
+        });
+        factory.create("should execute the reject callback in sending event", function(done) {
+            open({transport: this.args.transport}, function(socket) {
+                socket.on("open", function() {
+                    this.send("/reply/outbound", {type: "rejected", data: Math.E});
+                })
+                .on("test", function(data, reply) {
+                    reply.reject(data);
+                    this.on("done", function(value) {
+                        value.should.be.equal(Math.E);
+                        done();
+                    });
+                });
+            });
+        });
+    });
 });
