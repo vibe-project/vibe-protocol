@@ -1,6 +1,6 @@
 {
   "name": "vibe-protocol",
-  "version": "3.0.0-Alpha7",
+  "version": "3.0.0-Alpha8",
   "homepage": "http://vibe-project.github.io/projects/vibe-protocol/",
   "description": "A reference implementation and test suite for Vibe protocol",
   "author": {
