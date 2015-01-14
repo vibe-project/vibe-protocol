@@ -38,7 +38,7 @@ describe("client", function() {
     var sockets = [];
     var netSockets = [];
     // A Vibe server
-    var server = vibe.server();
+    var server = vibe.createServer();
     server.on("socket", function(socket) {
         sockets.push(socket);
         socket.on("close", function() {
@@ -52,15 +52,19 @@ describe("client", function() {
         socket.on("close", function () {
             netSockets.splice(netSockets.indexOf(socket), 1);
         });
-    })
-    .on("request", function(req, res) {
+    });
+    var httpTransportServer = vibe.transport.createHttpServer();
+    httpTransportServer.on("transport", server.handle);
+    httpServer.on("request", function(req, res) {
         if (url.parse(req.url).pathname === "/vibe") {
-            server.handleRequest(req, res);
+            httpTransportServer.handle(req, res);
         }
-    })
-    .on("upgrade", function(req, sock, head) {
+    });
+    var wsTransportServer = vibe.transport.createWebSocketServer();
+    wsTransportServer.on("transport", server.handle);
+    httpServer.on("upgrade", function(req, sock, head) {
         if (url.parse(req.url).pathname === "/vibe") {
-            server.handleUpgrade(req, sock, head);
+            wsTransportServer.handle(req, sock, head);
         }
     });
 

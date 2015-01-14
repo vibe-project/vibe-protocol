@@ -2,7 +2,7 @@ var vibe = require("../../lib/index");
 var url = require("url");
 var http = require("http");
 
-var server = vibe.server();
+var server = vibe.createServer();
 server.on("socket", function(socket) {
     socket.on("error", function() {})
     .on("abort", function() {
@@ -37,7 +37,11 @@ server.on("socket", function(socket) {
         }
     });
 });
-http.createServer().on("request", function(req, res) {
+
+var httpServer = http.createServer();
+var httpTransportServer = vibe.transport.createHttpServer();
+httpTransportServer.on("transport", server.handle);
+httpServer.on("request", function(req, res) {
     var urlObj = url.parse(req.url, true);
     var query = urlObj.query;
     switch (urlObj.pathname) {
@@ -51,13 +55,15 @@ http.createServer().on("request", function(req, res) {
         res.end();
         break;
     case "/vibe":
-        server.handleRequest(req, res);
+        httpTransportServer.handle(req, res);
         break;
     }
-})
-.on("upgrade", function(req, sock, head) {
+});
+var wsTransportServer = vibe.transport.createWebSocketServer();
+wsTransportServer.on("transport", server.handle);
+httpServer.on("upgrade", function(req, sock, head) {
     if (url.parse(req.url).pathname === "/vibe") {
-        server.handleUpgrade(req, sock, head);
+        wsTransportServer.handle(req, sock, head);
     }
-})
-.listen(8000);
+});
+httpServer.listen(8000);
