@@ -43,7 +43,20 @@ describe("server", function() {
             _heartbeat: options._heartbeat || 5000
         }), function() {
             // Start a test after completing setup
-            var socket = vibe.open(origin + "/vibe?transport=" + options.transport)
+            // TODO improve
+            var uri = origin + "/vibe";
+            switch (options.transport) {
+            case "ws":
+                uri = uri.replace(/^http/, "ws");
+                break;
+            case "stream":
+                uri += "?transport=stream";
+                break;
+            case "longpoll":
+                uri += "?transport=longpoll";
+                break;
+            }
+            var socket = vibe.open(uri)
             .on("open", function() {
                 sockets.push(this);
             })
