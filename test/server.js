@@ -49,10 +49,10 @@ describe("server", function() {
             case "ws":
                 uri = uri.replace(/^http/, "ws");
                 break;
-            case "stream":
+            case "httpstream":
                 uri += "?transport=stream";
                 break;
-            case "longpoll":
+            case "httplongpoll":
                 uri += "?transport=longpoll";
                 break;
             }

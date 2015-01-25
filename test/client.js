@@ -79,10 +79,10 @@ describe("client", function() {
         case "ws":
             params.uri = params.uri.replace(/^http/, "ws");
             break;
-        case "stream":
+        case "httpstream":
             params.uri += "?transport=stream";
             break;
-        case "longpoll":
+        case "httplongpoll":
             params.uri += "?transport=longpoll";
             break;
         }
