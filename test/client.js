@@ -85,6 +85,9 @@ describe("client", function() {
         case "httplongpoll":
             params.uri += "?transport=longpoll";
             break;
+        default:
+            throw new Error("Unsupported transport");
+            break;
         }
         // To test multiple clients concurrently
         if (factory.args.session) {

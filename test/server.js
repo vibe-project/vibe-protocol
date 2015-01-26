@@ -55,6 +55,9 @@ describe("server", function() {
             case "httplongpoll":
                 uri += "?transport=longpoll";
                 break;
+            default:
+                throw new Error("Unsupported transport");
+                break;
             }
             var socket = vibe.open(uri)
             .on("open", function() {
