@@ -177,8 +177,6 @@ describe("client", function() {
                 received.push(i);
                 clearTimeout(timer);
                 timer = setTimeout(function() {
-                    sent.sort();
-                    received.sort();
                     received.should.be.deep.equal(sent);
                     done();
                 }, received.length === 20 ? 0 : 5000);
