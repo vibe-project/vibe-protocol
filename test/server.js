@@ -46,7 +46,7 @@ describe("server", function() {
             // TODO improve
             var uri = origin + "/vibe";
             switch (options.transport) {
-            case "ws":
+            case "websocket":
                 uri = uri.replace(/^http/, "ws");
                 break;
             case "httpstream":

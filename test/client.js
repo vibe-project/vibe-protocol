@@ -76,7 +76,7 @@ describe("client", function() {
         };
         // TODO improve
         switch (options.transport) {
-        case "ws":
+        case "websocket":
             params.uri = params.uri.replace(/^http/, "ws");
             break;
         case "httpstream":
